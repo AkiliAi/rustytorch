@@ -1,0 +1,57 @@
+[workspace]
+
+
+
+
+
+
+
+resolvers = "2"
+members = [ "rustytorch_autograd", "rustytorch_backends","rustytorch_core", "rustytorch_data", "rustytorch_nn", "rustytorch_optim", "rustytorch_tensor", "rustytorch_text", "rustytorch_utils"]
+
+
+
+
+# Dependence commun
+[workspace.dependencies]
+rayon = "=1.8"
+ndarray = "=0.15"
+thiserror = "=1.0"
+log = "=0.4"
+env_logger = "=0.10"
+rand = "=0.8"
+num-traits = "=0.2"
+bytemuck = "=1.14"
+serde = {version = "=1.0", features = ["derive"]}
+
+# Pour la compilation  conditionnelle
+cfg-if = "=1.0"
+
+
+#Utilitaires des test
+criterion = "0.5"
+proptest = "1.4"
+
+
+
+
+# Options résolues au niveau du workspace
+[workspace.lints.rust]
+unsafe_code = "warn"
+missing_docs = "warn"
+
+[workspace.lints.clippy]
+all = "warn"
+pedantic = "warn"
+nursery = "warn"
+
+
+
+
+
+[workspace.package]
+version = "0.1.0"
+edition = "2021"
+authors = ["YmC"]
+license = "MIT"
+repository = "https://github.com/AkiliAi/rustytorch.git"

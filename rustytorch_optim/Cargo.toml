@@ -1,0 +1,45 @@
+[package]
+name = "rustytorch_optim"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "RustyTorch Optim Module inpired by PyTorch"
+
+
+
+#
+#
+## Dependances communes du workspace
+#[dependencies]
+#rayon.workspace = true
+#ndarray.workspace = true
+#thiserror.workspace = true
+#log.workspace = true
+#num-traits.workspace = true
+#bytemuck.workspace = true
+#serde.workspace = true
+#cfg-if.workspace = true
+#
+#
+#
+#
+### Caractéristiques optionnelles
+##[features]
+##default = ["cpu"]
+##cpu = []
+##cuda = ["dep:cuda-runtime", "dep:cuda-sys"]
+##mkl = ["dep:intel-mkl-src"]
+#
+#
+### Dépendances optionnelles pour les features
+##cuda-runtime = { version = "0.5", optional = true }
+##cuda-sys = { version = "0.2", optional = true }
+##intel-mkl-src = { version = "0.8", optional = true }
+#
+##Dépendances de développement uniquement
+#[dev-dependencies]
+#criterion.workspace = true
+#proptest.workspace = true
+#

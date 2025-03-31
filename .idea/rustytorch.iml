@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<module type="EMPTY_MODULE" version="4">
+  <component name="NewModuleRootManager">
+    <content url="file://$MODULE_DIR$">
+      <sourceFolder url="file://$MODULE_DIR$/rustytorch_autograd/src" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/rustytorch_backends/src" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/rustytorch_core/src" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/rustytorch_data/src" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/rustytorch_nn/src" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/rustytorch_optim/src" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/rustytorch_tensor/src" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/rustytorch_text/src" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/rustytorch_utils/src" isTestSource="false" />
+      <excludeFolder url="file://$MODULE_DIR$/target" />
+    </content>
+    <orderEntry type="inheritedJdk" />
+    <orderEntry type="sourceFolder" forTests="false" />
+  </component>
+</module>
