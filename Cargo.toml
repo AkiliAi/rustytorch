@@ -6,7 +6,7 @@
 
 
 
-resolvers = "2"
+resolver = "2"
 members = [ "rustytorch_autograd", "rustytorch_backends","rustytorch_core", "rustytorch_data", "rustytorch_nn", "rustytorch_optim", "rustytorch_tensor", "rustytorch_text", "rustytorch_utils"]
 
 
