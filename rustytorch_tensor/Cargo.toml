@@ -24,6 +24,7 @@ cfg-if.workspace = true
 
 # Dépendance interne vers rustytorch_core
 rustytorch_core = { path = "../rustytorch_core" }
+bumpalo = "3.17.0"
 
 
 

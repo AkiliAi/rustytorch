@@ -31,6 +31,10 @@ pub trait Reshapable {
 }
 
 
+/// Trait pour le Broadcasting
+
+
+
 
 pub trait Differentiable {
     type Gradient;

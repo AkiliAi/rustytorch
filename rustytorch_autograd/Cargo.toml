@@ -25,6 +25,7 @@ rand.workspace = true
 #cfg-if.workspace = true
 
 rustytorch_tensor = { path = "../rustytorch_tensor" }
+rustytorch_core = {path = "../rustytorch_core"}
 
 
 
