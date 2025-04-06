@@ -10,10 +10,14 @@ use rand::Rng;
 use rayon::prelude::*;
 
 
-mod storage;
+pub mod storage;
+mod tensor_errors;
+mod tensor_optims;
+mod broadcastings;
 
 use storage::StorageType;
-
+use crate::tensor_errors::TensorError;
+use crate::tensor_errors::TensorErrorType::ShapeMismatch;
 
 #[derive(Clone,Debug,PartialEq,)]
 pub struct Tensor {
@@ -22,8 +26,8 @@ pub struct Tensor {
     strides: Vec<usize>,
     offset: usize,
     options : TensorOptions,
-}
 
+}
 
 
 impl Tensor {
@@ -107,52 +111,21 @@ impl Tensor {
         self.shape.iter().product()
     }
 
-    /// renvoie le type de données du tenseur
+    /// Renvoie le type de données du tenseur
     pub fn dtype(&self) -> Dtype {
         self.options.dtype
     }
 
-
-    // renvoie le type de stockage du tenseur
+    /// Renvoie le type de stockage du tenseur
     pub fn storage(&self) -> &StorageType {
         &self.storage
     }
 
-    // renvoie le device
+    /// Renvoie le device
     pub fn device(&self) -> &Device{
         &self.options.device
     }
 
-
-    // Addition optimisée avec SIMD et parallélisation
-    // pub fn add_optimized(&self, other: &Self) -> Self {
-    //     assert_eq!(self.shape(), other.shape());
-    //
-    //     let mut result = Self::zeros(self.shape().to_vec(), Some(self.options.clone()));
-    //
-    //     // Parallélisation avec Rayon
-    //     result.data.chunks_mut(1024)
-    //         .zip(self.data.chunks(1024))
-    //         .zip(other.data.chunks(1024))
-    //         .par_bridge()
-    //         .for_each(|((result_chunk, self_chunk), other_chunk)| {
-    //             // SIMD pour chaque chunk
-    //             for (i, (a, b)) in self_chunk.iter().zip(other_chunk.iter()).enumerate() {
-    //                 // Utilisation de SIMD quand les données sont alignées
-    //                 if i + 8 <= result_chunk.len() {
-    //                     let a_simd = f32x8::from_slice(&self_chunk[i..i+8]);
-    //                     let b_simd = f32x8::from_slice(&other_chunk[i..i+8]);
-    //                     let result_simd = a_simd + b_simd;
-    //                     result_simd.write_to_slice_unaligned(&mut result_chunk[i..i+8]);
-    //                     i += 7; // On avance de 7 (la boucle incrémentera de 1)
-    //                 } else {
-    //                     result_chunk[i] = a + b;
-    //                 }
-    //             }
-    //         });
-    //
-    //     result
-    // }
 
 }
 
@@ -163,16 +136,31 @@ impl NumericOps for Tensor {
     type Output = Tensor;
 
     fn add(self, rhs: Self) -> Self::Output {
-        unimplemented!()
+        match self.add_broadcast(&rhs) {
+            Ok(result) => result,
+            Err(e) => panic!("Error in add Operation: {}", e),
+            // Err() =>
+        }
     }
     fn sub(self, rhs: Self) -> Self::Output {
-        unimplemented!()
+        match self.sub_broadcast(&rhs) {
+            Ok(result) => result,
+            Err(e) => panic!("Error in sub Operation: {}", e),
+        }
+
     }
     fn mul(self, rhs: Self) -> Self::Output {
-        unimplemented!()
+        match self.mul_broadcast(&rhs) {
+            Ok(result) => result,
+            Err(e) =>panic!("Error in mul Operation {}",e),
+        }
+
     }
     fn div(self, rhs: Self) -> Self::Output {
-        unimplemented!()
+        match self.div_broadcast(&rhs) {
+            Ok(result) =>result,
+            Err(e) =>panic!("Error in div Operation {}",e),
+        }
     }
 }
 
@@ -181,18 +169,30 @@ impl Reduction for Tensor{
     type Output = Tensor;
 
     fn sum(&self) -> Self::Output {
-        unimplemented!()
+        match self.sum_dim(None) {
+            Ok(result) => result,
+            Err(e) => panic!("Error in sum operation {}",e),
+        }
     }
     fn mean(&self) -> Self::Output {
-        unimplemented!()
+        match self.mean_dim(None) {
+            Ok(result) =>result,
+            Err(e) => panic!("Error in mean operation {}", e),
+        }
     }
 
     fn max(&self) -> Self::Output {
-        unimplemented!()
+        match self.max_dim(None) {
+            Ok(result) => result,
+            Err(e) => panic!("Error in max operation {}", e),
+        }
     }
 
     fn min(&self) -> Self::Output {
-        unimplemented!()
+        match self.min_dim(None) {
+            Ok(result) => result,
+            Err(e) => panic!("Error in min operation {}", e),
+        }
     }
 
 }
@@ -200,11 +200,17 @@ impl Reduction for Tensor{
 
 
 impl Reshapable for Tensor {
-    fn reshape(&self, shape: &[usize]) -> Self {
+    fn reshape(&self, shape: &[usize]) -> Self /*Result<Tensor, TensorError> */{
         //vérifier que le nombre total d'éléments est le même
         let new_size :usize = shape.iter().product();
-        // assert_eq!(self.numel(),new_size,"Shape size mismatch with data length");
         assert_eq!(self.numel(),new_size, "Shape size n'est pas compatible avec le nombre d'éléments");
+
+
+        // if self.numel() != new_size {
+        //     return Err(TensorError::new(ShapeMismatch,"Shape size mismatch with data length"));
+        //
+        // }
+        //
 
         // creer un nouveau tenseur avec la meme memoire mais avec une nouvelle forme
         let mut result = self.clone();
@@ -218,12 +224,14 @@ impl Reshapable for Tensor {
         result.strides = strides;
 
         result
+        // Ok(result)
     }
 
     // flatten le tenseur
     fn flatten(&self) -> Self {
         self.reshape(&[self.numel()])
     }
+
 
     // transpose le tenseur
     fn transpose(&self, dim0: usize, dim1: usize) -> Self {
@@ -238,7 +246,6 @@ impl Reshapable for Tensor {
 
     }
 
-
 }
 
 
@@ -249,7 +256,7 @@ impl Reshapable for Tensor {
 // rustytorch_tensor/src/lib.rs (partie tests)
 
 #[cfg(test)]
-mod tests_tensor{
+mod tests_tensor_operation{
     use super::*;
 
     #[test]
@@ -291,6 +298,143 @@ mod tests_tensor{
 
         let transposed = tensor.transpose(0, 1);
         assert_eq!(transposed.shape(), &[3, 2]);
+    }
+
+
+    #[test]
+    fn test_add() {
+        let a = Tensor::from_data(&[1.0, 2.0, 3.0], vec![3], None);
+        let b = Tensor::from_data(&[4.0, 5.0, 6.0], vec![3], None);
+
+        let c = a.clone().add(b.clone());
+
+        // Vérifier la forme
+        assert_eq!(c.shape(), &[3]);
+
+        // Vérifier le contenu
+        match c.storage.as_ref() {
+            StorageType::F32(data) => {
+                assert_eq!(data, &[5.0, 7.0, 9.0]);
+            },
+            StorageType::F64(data) => {
+                assert_eq!(data, &[5.0, 7.0, 9.0]);
+            },
+            _ => panic!("Unexpected storage type"),
+        }
+    }
+
+    #[test]
+    fn test_broadcasting() {
+        // Test de broadcasting: scalaire + vecteur
+        let scalar = Tensor::from_data(&[5.0], vec![1], None);
+        let vector = Tensor::from_data(&[1.0, 2.0, 3.0], vec![3], None);
+
+        let result = match scalar.add_broadcast(&vector) {
+            Ok(r) => r,
+            Err(e) => panic!("Broadcasting failed: {}", e),
+        };
+
+        assert_eq!(result.shape(), &[3]);
+
+        match result.storage.as_ref() {
+            StorageType::F32(data) => {
+                assert_eq!(data, &[6.0, 7.0, 8.0]);
+            },
+            StorageType::F64(data) => {
+                assert_eq!(data, &[6.0, 7.0, 8.0]);
+            },
+            _ => panic!("Unexpected storage type"),
+        }
+    }
+
+    #[test]
+    fn test_matrix_multiplication() {
+        // Matrice 2x3
+        let a = Tensor::from_data(&[1.0, 2.0, 3.0, 4.0, 5.0, 6.0], vec![2, 3], None);
+        // Matrice 3x2
+        let b = Tensor::from_data(&[7.0, 8.0, 9.0, 10.0, 11.0, 12.0], vec![3, 2], None);
+
+        let result = match a.matmul(&b) {
+            Ok(r) => r,
+            Err(e) => panic!("Matrix multiplication failed: {}", e),
+        };
+
+        // Le résultat devrait être une matrice 2x2
+        assert_eq!(result.shape(), &[2, 2]);
+
+        // Vérifier le contenu (multiplication matricielle)
+        match result.storage.as_ref() {
+            StorageType::F32(data) => {
+                // [1, 2, 3] • [7, 8] = 1*7 + 2*9 + 3*11 = 58
+                //           • [9, 10]   1*8 + 2*10 + 3*12 = 64
+                // [4, 5, 6] • [11, 12] = 4*7 + 5*9 + 6*11 = 139
+                //                        4*8 + 5*10 + 6*12 = 154
+                assert_eq!(data[0], 58.0);
+                assert_eq!(data[1], 64.0);
+                assert_eq!(data[2], 139.0);
+                assert_eq!(data[3], 154.0);
+            },
+            StorageType::F64(data) => {
+                assert_eq!(data[0], 58.0);
+                assert_eq!(data[1], 64.0);
+                assert_eq!(data[2], 139.0);
+                assert_eq!(data[3], 154.0);
+            },
+            _ => panic!("Unexpected storage type"),
+        }
+    }
+
+    #[test]
+    fn test_reduction_operations() {
+        let tensor = Tensor::from_data(&[1.0, 2.0, 3.0, 4.0], vec![2, 2], None);
+
+        // Test sum
+        let sum = tensor.sum();
+        match sum.storage.as_ref() {
+            StorageType::F32(data) => {
+                assert_eq!(data[0], 10.0); // 1+2+3+4
+            },
+            StorageType::F64(data) => {
+                assert_eq!(data[0], 10.0);
+            },
+            _ => panic!("Unexpected storage type"),
+        }
+
+        // Test mean
+        let mean = tensor.mean();
+        match mean.storage.as_ref() {
+            StorageType::F32(data) => {
+                assert_eq!(data[0], 2.5); // (1+2+3+4)/4
+            },
+            StorageType::F64(data) => {
+                assert_eq!(data[0], 2.5);
+            },
+            _ => panic!("Unexpected storage type"),
+        }
+
+        // Test max
+        let max = tensor.max();
+        match max.storage.as_ref() {
+            StorageType::F32(data) => {
+                assert_eq!(data[0], 4.0);
+            },
+            StorageType::F64(data) => {
+                assert_eq!(data[0], 4.0);
+            },
+            _ => panic!("Unexpected storage type"),
+        }
+
+        // Test min
+        let min = tensor.min();
+        match min.storage.as_ref() {
+            StorageType::F32(data) => {
+                assert_eq!(data[0], 1.0);
+            },
+            StorageType::F64(data) => {
+                assert_eq!(data[0], 1.0);
+            },
+            _ => panic!("Unexpected storage type"),
+        }
     }
 }
 
