@@ -1,8 +1,7 @@
 target
-
+target/.rustc_info.json
 
 
 
 
 .idea
-.rustc_info.json
