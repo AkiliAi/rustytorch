@@ -11,7 +11,7 @@ description = "RustyTorch Backends Module inpired by PyTorch"
 
 #
 ## Dependances communes du workspace
-#[dependencies]
+[dependencies]
 #rayon.workspace = true
 #ndarray.workspace = true
 #thiserror.workspace = true
@@ -20,10 +20,25 @@ description = "RustyTorch Backends Module inpired by PyTorch"
 #bytemuck.workspace = true
 #serde.workspace = true
 #cfg-if.workspace = true
-#
-#
-#
-#
+
+
+[dev-dependencies]
+#rustytorch_core= { path = "../rustytorch_core" }
+#rustytorch_autograd= { path = "../rustytorch_autograd" }
+#rustytorch_data= { path = "../rustytorch_data" }
+#rustytorch_nn= { path = "../rustytorch_nn" }
+#rustytorch_optim= { path = "../rustytorch_optim" }
+#rustytorch_tensor= { path = "../rustytorch_tensor" }
+#rustytorch_text= { path = "../rustytorch_text" }
+#rustytorch_utils= { path = "../rustytorch_utils" }
+
+
+
+
+
+
+
+
 ### Caractéristiques optionnelles
 ##[features]
 ##default = ["cpu"]
