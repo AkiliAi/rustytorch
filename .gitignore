@@ -1,16 +1,8 @@
-/target
+target
 
 
-rustytorch_autograd/target
-rustytorch_backends/target
-rustytorch_core/target
-rustytorch_data/target
-rustytorch_nn/target
-rustytorch_optim/target
-rustytorch_tensor/target
-rustytorch_text/target
-rustytorch_utils/target
-rustytorch_examples/target
+
+
 
 .idea
 .rustc_info.json
