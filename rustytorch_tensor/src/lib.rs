@@ -16,8 +16,6 @@ mod tensor_optims;
 mod broadcastings;
 
 use storage::StorageType;
-use crate::tensor_errors::TensorError;
-use crate::tensor_errors::TensorErrorType::ShapeMismatch;
 
 #[derive(Clone,Debug,PartialEq,)]
 pub struct Tensor {

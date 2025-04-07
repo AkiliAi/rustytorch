@@ -1,16 +1,28 @@
 //rustytorch_autograd/src/lib.rs
 
 use rustytorch_tensor::Tensor;
-use rustytorch_core::{NumericOps, Reshapable};
+use rustytorch_core::{NumericOps, Reduction, Reshapable};
 use std::collections::HashMap;
 use std::sync::Arc;
 use std::cell::RefCell;
+use std::env::vars;
 use std::thread_local;
 use std::fmt::{Display, Formatter};
 
 // Variable globale pour activer/désactiver le calcul du gradient
 thread_local! {
     static GRAD_ENABLED: RefCell<bool> = RefCell::new(true);
+    static VARIABLES: RefCell<HashMap<usize, RefCell<Option<Tensor>>>> = RefCell::new(HashMap::new());
+    static NEXT_ID: RefCell<usize> = RefCell::new(0);   // ID unique pour chaque variable
+
+}
+// Fonction pour obtenir un nouvel ID unique
+fn get_next_id() -> usize {
+    NEXT_ID.with(|id| {
+        let new_id = *id.borrow();
+        *id.borrow_mut() += 1;
+        new_id
+    })
 }
 
 ///Node pour le graphe de calcul
@@ -89,17 +101,27 @@ pub struct Variable{
     pub is_leaf: bool,
     pub grad: Option<Tensor>,
     pub grad_fn: Option<Arc<Node>>,
+    pub id: usize,  // ID unique variable
 }
 
 impl Variable {
     // Cree une nouvelle variable a partir d'un tenseur
-    pub fn from_tensor(tensor: Tensor,requires_grad: bool) -> Self {
+    pub fn from_tensor(tensor: Tensor, requires_grad: bool) -> Self {
+        let id = get_next_id();
+
+        if requires_grad {
+            VARIABLES.with(|vars| {
+                vars.borrow_mut().insert(id, RefCell::new(None));
+            });
+        }
+
         Self {
             tensor,
             requires_grad,
-            is_leaf:true,
+            is_leaf: true,
             grad: None,
             grad_fn: None,
+            id,
         }
     }
 
@@ -110,12 +132,10 @@ impl Variable {
         inputs: Vec<Variable>,
         grad_fn: Option<Box<dyn Fn(&Tensor) -> Vec<Tensor> + Send + Sync>>,
     ) -> Self {
-        // Vérifier si le calcul du gradient est activé et si au moins une entrée requiert un gradient
         let requires_grad = GRAD_ENABLED.with(|cell| *cell.borrow()) &&
             inputs.iter().any(|v| v.requires_grad);
 
         let grad_fn = if requires_grad {
-            // Créer un nœud pour cette opération
             let node = Node {
                 operation,
                 inputs: inputs.clone(),
@@ -126,12 +146,15 @@ impl Variable {
             None
         };
 
+        let id = get_next_id();
+
         Self {
             tensor,
             requires_grad,
             is_leaf: false,
             grad: None,
             grad_fn,
+            id,
         }
     }
 
@@ -353,7 +376,6 @@ impl Variable {
 
         // Initialiser le gradient de sortie à 1 s'il n'est pas défini
         if self.grad.is_none() {
-            // Créer un tenseur de 1 de la même forme que le tenseur actuel
             self.grad = Some(Tensor::ones(self.tensor.shape().to_vec(), None));
         }
 
@@ -362,36 +384,30 @@ impl Variable {
             queue.push((grad_fn.clone(), self.grad.clone().unwrap()));
         } else if self.is_leaf {
             // Pour les feuilles, stocker le gradient directement
-            let tensor_ptr = &self.tensor as *const Tensor as usize;
-            grad_table.insert(tensor_ptr, self.grad.clone().unwrap());
+            grad_table.insert(self.id, self.grad.clone().unwrap());
         }
 
         // Propager les gradients à travers le graphe
         while let Some((node, grad_output)) = queue.pop() {
-            // Calculer les gradients par rapport aux entrées
             if let Some(ref grad_fn) = node.grad_fn {
                 let input_grads = grad_fn(&grad_output);
 
-                // Vérifier que le nombre de gradients correspond au nombre d'entrées
-                assert_eq!(input_grads.len(), node.inputs.len(), "Number of gradients doesn't match number of inputs");
+                assert_eq!(input_grads.len(), node.inputs.len(),
+                           "Number of gradients doesn't match number of inputs");
 
-                // Propager les gradients aux entrées
                 for (input_var, input_grad) in node.inputs.iter().zip(input_grads.iter()) {
                     if !input_var.requires_grad {
                         continue;
                     }
 
-                    let tensor_ptr = &input_var.tensor as *const Tensor as usize;
-
-                    // Accumuler les gradients pour les variables qui apparaissent plusieurs fois
-                    if let Some(existing_grad) = grad_table.get(&tensor_ptr) {
+                    // Utiliser l'ID plutôt que l'adresse mémoire
+                    if let Some(existing_grad) = grad_table.get(&input_var.id) {
                         let new_grad = existing_grad.clone().add(input_grad.clone());
-                        grad_table.insert(tensor_ptr, new_grad);
+                        grad_table.insert(input_var.id, new_grad);
                     } else {
-                        grad_table.insert(tensor_ptr, input_grad.clone());
+                        grad_table.insert(input_var.id, input_grad.clone());
                     }
 
-                    // Si cette entrée a une fonction de gradient, l'ajouter à la file d'attente
                     if let Some(ref input_grad_fn) = input_var.grad_fn {
                         queue.push((input_grad_fn.clone(), input_grad.clone()));
                     }
@@ -400,14 +416,58 @@ impl Variable {
         }
 
         // Mettre à jour les gradients des variables feuilles
-        for (tensor_ptr, grad) in grad_table {
-            // Ici nous devrions mettre à jour le gradient de la variable correspondante
-            // Mais comme nous n'avons pas de référence directe aux variables feuilles,
-            // cette mise à jour est approximative
+        for (var_id, grad) in grad_table {
+            VARIABLES.with(|vars| {
+                if let Some(var_grad) = vars.borrow().get(&var_id) {
+                    *var_grad.borrow_mut() = Some(grad.clone());
+                }
+            });
 
-            // Dans une implémentation complète, nous pourrions avoir un registre
-            // global des variables ou utiliser une autre approche pour retrouver
-            // les variables à partir de leurs tenseurs
+            // Mise à jour du gradient dans cette variable si nécessaire
+            if var_id == self.id {
+                self.grad = Some(grad);
+            }
+        }
+    }
+
+
+    /// Calcule la somme de tous les elements du tenseur
+    pub fn sum(&self) -> Self{
+        let result_tensor = self.tensor.sum();
+
+        // Si le calcul du gradient est désactivé, retourner un résultat simple
+        if !GRAD_ENABLED.with(|cell| *cell.borrow()) {
+            return Self::from_tensor(result_tensor, false);
+        }
+
+
+        // pour la rétropropagation, le gradient de sum par rapport à chaque élément est 1
+        let self_clone = self.clone();
+        let grad_fn = Box::new(move|_grad_output: &Tensor| {
+            // Pour sum(), le gradient par rapport à chaque élément de l'entrée est 1
+            let ones = Tensor::ones(self_clone.tensor.shape().to_vec(),None);
+            vec![ones]
+        }) as Box<dyn Fn(&Tensor) -> Vec<Tensor>+ Send +Sync>;
+
+        // Créer la variable résultante
+        Self::from_operation(
+            result_tensor,
+            Operation::None, // On pourrait ajouter un type d'opération Sum si nécessaire
+            vec![self.clone()],
+            Some(grad_fn),
+        )
+    }
+
+    pub fn grad(&self) -> Option<Tensor> {
+        if self.is_leaf && self.requires_grad {
+            VARIABLES.with(|vars| {
+                if let Some(var_grad) = vars.borrow().get(&self.id) {
+                    return var_grad.borrow().clone();
+                }
+                None
+            })
+        } else {
+            self.grad.clone()
         }
     }
 
