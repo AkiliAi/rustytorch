@@ -16,6 +16,7 @@ mod tensor_optims;
 mod broadcastings;
 
 use storage::StorageType;
+use crate::tensor_errors::TensorError;
 
 #[derive(Clone,Debug,PartialEq,)]
 pub struct Tensor {
@@ -147,7 +148,7 @@ impl NumericOps for Tensor {
         }
 
     }
-    fn mul(self, rhs: Self) -> Self::Output {
+    fn mul(self, rhs: Tensor) -> Self::Output {
         match self.mul_broadcast(&rhs) {
             Ok(result) => result,
             Err(e) =>panic!("Error in mul Operation {}",e),
