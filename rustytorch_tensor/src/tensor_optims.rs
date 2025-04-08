@@ -165,6 +165,22 @@ impl Tensor {
         )
     }
 
+    /// Applique une fonction d'activation cosh optimisée
+    pub fn cosh(&self) -> Result<Self, TensorError> {
+        self.apply_unary_op(
+            |x| x.cosh(),
+            |x| x.cosh()
+        )
+    }
+
+    /// Applique une fonction d'activation sinh optimisée
+    pub fn sinh(&self) -> Result<Self, TensorError> {
+        self.apply_unary_op(
+            |x| x.sinh(),
+            |x| x.sinh()
+        )
+    }
+
     /// Applique une fonction d'activation tanh optimisée
     pub fn tanh(&self) -> Result<Self, TensorError> {
         self.apply_unary_op(
@@ -198,6 +214,31 @@ impl Tensor {
             |x| if x > 0.0 { x.ln() } else { f64::NAN }
         )
     }
+
+    /// Calcule le sinus de chaque élément
+    pub fn sin(&self) -> Result<Self, TensorError> {
+        self.apply_unary_op(
+            |x| x.sin(),
+            |x| x.sin()
+        )
+    }
+
+    /// Calcule le cosinus de chaque élément
+    pub fn cos(&self) -> Result<Self, TensorError> {
+        self.apply_unary_op(
+            |x| x.cos(),
+            |x| x.cos()
+        )
+    }
+
+    /// Calcule la tangente de chaque élément
+    pub fn tan(&self) -> Result<Self, TensorError> {
+        self.apply_unary_op(
+            |x| x.tan(),
+            |x| x.tan()
+        )
+    }
+
 
     /// Applique une fonction de softmax (pour les problèmes de classification)
     pub fn softmax(&self, dim: Option<usize>) -> Result<Self, TensorError> {
