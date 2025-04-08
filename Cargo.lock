@@ -344,6 +344,23 @@ dependencies = [
 ]
 
 [[package]]
+name = "rustytorch_viz"
+version = "0.1.0"
+dependencies = [
+ "bytemuck",
+ "cfg-if",
+ "log",
+ "ndarray",
+ "num-traits",
+ "rand",
+ "rayon",
+ "rustytorch_autograd",
+ "rustytorch_core",
+ "serde",
+ "thiserror",
+]
+
+[[package]]
 name = "serde"
 version = "1.0.219"
 source = "registry+https://github.com/rust-lang/crates.io-index"

@@ -12,7 +12,6 @@ use crate::tensor_errors::TensorErrorType::ShapeMismatch;
 
 
 impl Tensor {
-    // ... (code existant)
 
     /// Compare les formes de deux tenseurs pour la compatibilité avec le broadcasting
     pub fn broadcast_shapes(&self, other: &Self) -> Result<Vec<usize>, TensorError> {
@@ -538,3 +537,7 @@ impl Tensor {
         }
     }
 }
+
+
+
+

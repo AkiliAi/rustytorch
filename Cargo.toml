@@ -11,7 +11,7 @@ members = [ "rustytorch_autograd",
     "rustytorch_tensor",
     "rustytorch_text",
     "rustytorch_utils",
-    "rustytorch_examples",]
+    "rustytorch_examples", "rustytorch_viz",]
 
 
 
