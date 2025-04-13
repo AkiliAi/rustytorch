@@ -7,7 +7,7 @@ use rustytorch_tensor::{Tensor};
 
 
 
-fn main() {
+fn main() -> Result<(), Box<dyn std::error::Error>> {
     // println!("RustyTorch - Exemple de base de tenseurs");
     //
     // // Créer un tenseur à partir de données
@@ -41,8 +41,6 @@ fn main() {
     // ====== Exemple 1: Opérations simples avec différentiation ======
     println!("====== Exemple 1: Opérations simples avec différentiation ======");
 
-
-
     // Créer des variables avec suivi de gradient
     let tensor_a = Tensor::from_data(&[2.0], vec![1], None);
     let tensor_b = Tensor::from_data(&[3.0], vec![1], None);
@@ -60,9 +58,8 @@ fn main() {
     var_c.backward();
 
     // Afficher les gradients
-    // dc = di
-    println!("dc/da = {}", extract_scalar(&var_a.grad().unwrap()));
-    println!("dc/db = {}", extract_scalar(&var_b.grad().unwrap()));
+    println!("dc/da = {}", extract_scalar(&var_a.grad().unwrap_or_else(|| panic!("Gradient for a is None"))));
+    println!("dc/db = {}", extract_scalar(&var_b.grad().unwrap_or_else(|| panic!("Gradient for b is None"))));
 
     // ====== Exemple 2: Expression plus complexe ======
     println!("\nExemple 2: Expression plus complexe");
@@ -94,12 +91,8 @@ fn main() {
     result.backward();
 
     // Afficher les gradients
-    if let Some(grad_x) = &var_x.grad {
-        println!("df/dx = {}", extract_scalar(grad_x));
-    }
-    if let Some(grad_y) = &var_y.grad {
-        println!("df/dy = {}", extract_scalar(grad_y));
-    }
+    println!("df/dx = {}", extract_scalar(&var_x.grad().unwrap_or_else(|| panic!("Gradient for x is None"))));
+    println!("df/dy = {}", extract_scalar(&var_y.grad().unwrap_or_else(|| panic!("Gradient for y is None"))));
 
     // ====== Exemple 3: Utilisation de no_grad ======
     println!("\nExemple 3: Utilisation de no_grad");
@@ -137,17 +130,19 @@ fn main() {
 
     // Pour simplifier, on n'affiche pas la matrice complète ici
 
-    // Utiliser la fonction sum_tensor plutôt que la méthode sum() sur Variable
-    let mut sum_c = wrap_sum_tensor(&var_c);
+    // Utiliser la fonction sum ou la méthode de Variable selon ce qui est disponible
+    let mut sum_c = var_c.sum();
     sum_c.backward();
 
     println!("dL/dA et dL/dB calculés (gradients des matrices)");
 
     println!("\nExemple de différentiation automatique terminé!");
+
+    Ok(())
 }
 
 
-// Fonction utilitaire pour extraire un scalaire d'un tenseur
+/// Fonction utilitaire pour extraire un scalaire d'un tenseur
 fn extract_scalar(tensor: &Tensor) -> f64 {
     let storage = tensor.storage();
     match storage {
@@ -155,24 +150,27 @@ fn extract_scalar(tensor: &Tensor) -> f64 {
             if data.len() >= 1 {
                 data[0] as f64
             } else {
-                std::f64::NAN // Correction: std::f64::NAN au lieu de f64::NAN
+                std::f64::NAN
             }
         },
         rustytorch_tensor::storage::StorageType::F64(data) => {
             if data.len() >= 1 {
                 data[0]
             } else {
-                std::f64::NAN // Correction: std::f64::NAN
+                std::f64::NAN
             }
         },
-        _ => std::f64::NAN, // Correction: std::f64::NAN
+        _ => std::f64::NAN,
     }
 }
 
 // Fonction pour sommer un tenseur et créer une Variable
 fn wrap_sum_tensor(var: &Variable) -> Variable {
     // Utiliser la méthode sum() de Tensor via le trait Reduction
-    let result_tensor = var.clone().tensor.sum();
+    let result_tensor = match var.tensor.sum() {
+        Ok(t) => t,
+        Err(e) => panic!("Error computing sum: {}", e),
+    };
 
     // Si le calcul du gradient est désactivé, retourner un résultat simple
     if !var.requires_grad {
@@ -190,7 +188,7 @@ fn wrap_sum_tensor(var: &Variable) -> Variable {
     // Créer la variable résultante
     Variable::from_operation(
         result_tensor,
-        Operation::None, // On pourrait ajouter un type d'opération Sum si nécessaire
+        Operation::Sum, // Utiliser l'opération Sum si disponible
         vec![var.clone()],
         Some(grad_fn),
     )
