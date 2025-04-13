@@ -33,6 +33,8 @@ serde = {version = "=1.0", features = ["derive"]}
 # Pour la compilation  conditionnelle
 cfg-if = "=1.0"
 
+rand_distr = "0.4.3"
+
 
 #Utilitaires des test
 criterion = "0.5"

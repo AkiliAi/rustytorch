@@ -13,6 +13,7 @@ description = "RustyTorch Neural Network Module inpired by PyTorch"
 #
 ## Dependances communes du workspace
 [dependencies]
+rand_distr = "0.4.3"
 #rayon.workspace = true
 #ndarray.workspace = true
 #thiserror.workspace = true
@@ -23,7 +24,6 @@ description = "RustyTorch Neural Network Module inpired by PyTorch"
 #cfg-if.workspace = true
 
 
-[dev-dependencies]
 rustytorch_core= { path = "../rustytorch_core" }
 rustytorch_autograd= { path = "../rustytorch_autograd" }
 rustytorch_backends= { path = "../rustytorch_backends" }
@@ -32,6 +32,7 @@ rustytorch_optim= { path = "../rustytorch_optim" }
 rustytorch_tensor= { path = "../rustytorch_tensor" }
 rustytorch_text= { path = "../rustytorch_text" }
 rustytorch_utils= { path = "../rustytorch_utils" }
+rand = "0.9.0"
 
 
 
