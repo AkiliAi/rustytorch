@@ -37,7 +37,7 @@
 - [x] Ajouter les opérations d'indexation et de découpage (slicing)
 
 ### Semaines 5-6: Optimisations et fonctionnalités avancées
-- [ ] Optimiser avec SIMD via `packed_simd` ou `std::simd`
+- [x] Optimiser avec SIMD via `packed_simd` ou `std::simd`
 - [x] Implémenter la parallélisation avec Rayon
 - [x] Ajouter les vues et opérations sans copie
 - [x] Développer la vérification des dimensions à la compilation (quand possible)
@@ -54,17 +54,17 @@
 
 ### Semaines 3-4: Propagation avant et arrière
 - [x] Implémenter le mécanisme de propagation avant (forward)
-- [ ] Développer la rétropropagation (backward)
-- [ ] Ajouter le calcul des gradients
-- [ ] Optimiser l'accumulation des gradients
-- [ ] Gérer les opérations in-place
+- [x] Développer la rétropropagation (backward)
+- [x] Ajouter le calcul des gradients
+- [x] Optimiser l'accumulation des gradients
+- [x] Gérer les opérations in-place
 
 ### Semaines 5-6: Fonctionnalités avancées
-- [ ] Implémenter la détection de cycles dans le graphe
+- [x] Implémenter la détection de cycles dans le graphe
 - [ ] Ajouter le support pour les gradients d'ordre supérieur
-- [ ] Optimiser l'utilisation de la mémoire
+- [x] Optimiser l'utilisation de la mémoire
 - [ ] Implémenter le détachement de graphe (detach)
-- [ ] Ajouter le mode d'évaluation sans gradient (no_grad)
+- [x] Ajouter le mode d'évaluation sans gradient (no_grad)
 - [ ] Développer des tests exhaustifs pour toutes les opérations
 
 ## 1.4 Tests, documentation et intégration (3 semaines)
