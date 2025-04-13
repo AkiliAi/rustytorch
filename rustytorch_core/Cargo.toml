@@ -1,3 +1,4 @@
+#cargo.toml de rustytorch_core
 [package]
 name = "rustytorch_core"
 version.workspace = true
@@ -10,19 +11,36 @@ description = "RustyTorch Core Module inpired by PyTorch"
 #
 #
 ## Dependances communes du workspace
-#[dependencies]
+[dependencies]
 #rayon.workspace = true
-#ndarray.workspace = true
+ndarray.workspace = true
+
 #thiserror.workspace = true
 #log.workspace = true
 #num-traits.workspace = true
 #bytemuck.workspace = true
 #serde.workspace = true
 #cfg-if.workspace = true
-#
-#
-#
-#
+
+
+
+
+
+[dev-dependencies]
+#rustytorch_autograd= { path = "../rustytorch_autograd" }
+#rustytorch_backends= { path = "../rustytorch_backends" }
+#rustytorch_data= { path = "../rustytorch_data" }
+#rustytorch_nn= { path = "../rustytorch_nn" }
+#rustytorch_optim= { path = "../rustytorch_optim" }
+#rustytorch_tensor= { path = "../rustytorch_tensor" }
+#rustytorch_text= { path = "../rustytorch_text" }
+#rustytorch_utils= { path = "../rustytorch_utils" }
+
+
+
+
+
+
 ### Caractéristiques optionnelles
 ##[features]
 ##default = ["cpu"]
@@ -36,6 +54,9 @@ description = "RustyTorch Core Module inpired by PyTorch"
 ##cuda-sys = { version = "0.2", optional = true }
 ##intel-mkl-src = { version = "0.8", optional = true }
 #
+
+
+
 ##Dépendances de développement uniquement
 #[dev-dependencies]
 #criterion.workspace = true

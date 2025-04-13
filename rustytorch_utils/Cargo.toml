@@ -13,9 +13,9 @@ description = "RustyTorch Utils Module inpired by PyTorch"
 #
 #
 ## Dependances communes du workspace
-#[dependencies]
+[dependencies]
 #rayon.workspace = true
-#ndarray.workspace = true
+ndarray.workspace = true
 #thiserror.workspace = true
 #log.workspace = true
 #num-traits.workspace = true

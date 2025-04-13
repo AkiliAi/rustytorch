@@ -1,13 +1,19 @@
+#Cargo.toml Principal du workspace
 [workspace]
 
-
-
-
-
-
-
 resolver = "2"
-members = [ "rustytorch_autograd", "rustytorch_backends","rustytorch_core", "rustytorch_data", "rustytorch_nn", "rustytorch_optim", "rustytorch_tensor", "rustytorch_text", "rustytorch_utils"]
+members = [ "rustytorch_autograd",
+    "rustytorch_backends",
+    "rustytorch_core",
+    "rustytorch_data", "rustytorch_examples",
+    "rustytorch_nn",
+    "rustytorch_optim",
+    "rustytorch_tensor",
+    "rustytorch_text",
+    "rustytorch_utils",
+    "rustytorch_examples", "rustytorch_viz",]
+
+
 
 
 
@@ -15,17 +21,19 @@ members = [ "rustytorch_autograd", "rustytorch_backends","rustytorch_core", "rus
 # Dependence commun
 [workspace.dependencies]
 rayon = "=1.8"
-ndarray = "=0.15"
+ndarray = "=0.15.6"
 thiserror = "=1.0"
 log = "=0.4"
 env_logger = "=0.10"
-rand = "=0.8"
+rand = "=0.9"
 num-traits = "=0.2"
 bytemuck = "=1.14"
 serde = {version = "=1.0", features = ["derive"]}
 
 # Pour la compilation  conditionnelle
 cfg-if = "=1.0"
+
+rand_distr = "0.4.3"
 
 
 #Utilitaires des test
@@ -44,6 +52,9 @@ missing_docs = "warn"
 all = "warn"
 pedantic = "warn"
 nursery = "warn"
+
+
+
 
 
 

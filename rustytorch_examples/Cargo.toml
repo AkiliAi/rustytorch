@@ -1,0 +1,28 @@
+[package]
+name = "rustytorch_examples"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+repository.workspace = true
+
+
+
+[dependencies]
+rustytorch_tensor  = { path = "../rustytorch_tensor" }
+rustytorch_core   = { path = "../rustytorch_core" }
+rustytorch_autograd = { path = "../rustytorch_autograd" }
+rustytorch_backends = { path = "../rustytorch_backends" }
+rustytorch_data = { path = "../rustytorch_data" }
+rustytorch_nn = { path = "../rustytorch_nn" }
+rustytorch_optim = { path = "../rustytorch_optim" }
+rustytorch_text = { path = "../rustytorch_text" }
+rustytorch_utils = { path = "../rustytorch_utils" }
+
+
+
+
+
+
+[lints]
+workspace = true
