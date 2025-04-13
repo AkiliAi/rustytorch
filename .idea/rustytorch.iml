@@ -11,6 +11,8 @@
       <sourceFolder url="file://$MODULE_DIR$/rustytorch_tensor/src" isTestSource="false" />
       <sourceFolder url="file://$MODULE_DIR$/rustytorch_text/src" isTestSource="false" />
       <sourceFolder url="file://$MODULE_DIR$/rustytorch_utils/src" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/rustytorch_examples/src" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/rustytorch_viz/src" isTestSource="false" />
       <excludeFolder url="file://$MODULE_DIR$/target" />
     </content>
     <orderEntry type="inheritedJdk" />
