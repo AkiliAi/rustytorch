@@ -24,17 +24,17 @@ pub trait Reduction {
 
 
 /// Trait pour les types pouvant etre convertis en differents formes
-pub trait Reshapable {
-    fn reshape(&self,shape: &[usize]) -> Self;
-    fn flatten(&self) -> Self;
-    fn transpose(&self,dim0:usize,dim1:usize) -> Self;
+pub trait Reshapable<TensorError> {
+    // fn reshape(&self,shape: &[usize]) -> Self;
+    // fn flatten(&self) -> Self;
+    // fn transpose(&self,dim0:usize,dim1:usize) -> Self;
+    fn reshape(&self, shape: &[usize]) -> Result<Self, TensorError> where Self: Sized;
+    fn flatten(&self) -> Result<Self, TensorError> where Self: Sized;
+    fn transpose(&self, dim0: usize, dim1: usize) -> Result<Self, TensorError> where Self: Sized;
 }
 
 
 /// Trait pour le Broadcasting
-
-
-
 
 pub trait Differentiable {
     type Gradient;
@@ -66,9 +66,6 @@ pub enum Dtype {
 }
 
 
-
-
-
 #[derive(Clone, Debug, PartialEq)]
 pub struct TensorOptions{
     pub dtype: Dtype,
@@ -80,9 +77,11 @@ pub struct TensorOptions{
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Device{
     CPU,
-    CUDA(u32),
+    // CUDA(u32),
+    CUDA(usize),
 
 }
+
 
 
 impl Default for TensorOptions{
@@ -91,6 +90,7 @@ impl Default for TensorOptions{
             dtype: Dtype::Float32,
             requires_grad: false,
             device: Device::CPU,
+            // device: Device,
         }
     }
 }

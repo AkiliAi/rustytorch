@@ -1,6 +1,12 @@
+//rustytorch_autograd/src/lib.rs
+
+pub mod cycle_detection;
+pub mod operations;
+
+/// Créez un module pour l'autograd
 
 
-mod operations;
+// use rustytorch_tensor::TensorError;
 
 use rustytorch_tensor::Tensor;
 use rustytorch_core::{NumericOps, Reduction, Reshapable};
@@ -9,7 +15,7 @@ use std::sync::Arc;
 use std::cell::RefCell;
 use std::env::vars;
 use std::thread_local;
-use std::fmt::{Display, Formatter};
+use std::fmt::{Debug, Display, Formatter};
 
 // Variable globale pour activer/désactiver le calcul du gradient
 thread_local! {
@@ -46,7 +52,7 @@ impl Clone for Node {
 }
 
 // Implémenter Debug manuellement
-impl std::fmt::Debug for Node {
+impl Debug for Node {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("Node")
             .field("operation", &self.operation)
@@ -71,8 +77,10 @@ pub enum Operation{
     Relu,
     Tanh,
     Softmax,
-    // Autres opérations à ajouter...
+    Sum,
+    Mean,
     None,
+    // Autres opérations à ajouter...
 }
 
 impl Display for Operation {
@@ -90,6 +98,8 @@ impl Display for Operation {
             Operation::Relu => write!(f, "ReLU"),
             Operation::Tanh => write!(f, "Tanh"),
             Operation::Softmax => write!(f, "Softmax"),
+            Operation::Sum => write!(f, "Sum"),
+            Operation::Mean => write!(f, "Mean"),
             Operation::None => write!(f, "None"),
         }
     }
@@ -163,7 +173,10 @@ impl Variable {
     /// Addition de deux variables
     pub fn add(&self, other: &Self) -> Self {
         // Opération sur les tenseurs sous-jacents
-        let result_tensor = self.tensor.clone().add(other.tensor.clone());
+        let result_tensor = match self.tensor.clone().add(other.tensor.clone()) {
+            Ok(t) => t,
+            Err(e) => panic!("Error in add operation: {}", e),
+        };
 
         // Si le calcul du gradient est désactivé, retourner un résultat simple
         if !GRAD_ENABLED.with(|cell| *cell.borrow()) {
@@ -192,7 +205,10 @@ impl Variable {
     /// Soustraction de deux variables
     pub fn sub(&self, other: &Self) -> Self {
         // Opération sur les tenseurs sous-jacents
-        let result_tensor = self.tensor.clone().sub(other.tensor.clone());
+        let result_tensor = match self.tensor.clone().sub(other.tensor.clone()) {
+            Ok(t) => t,
+            Err(e) => panic!("Error in sub operation: {}", e),
+        };
 
         // Si le calcul du gradient est désactivé, retourner un résultat simple
         if !GRAD_ENABLED.with(|cell| *cell.borrow()) {
@@ -203,7 +219,10 @@ impl Variable {
         // Pour c = a - b, dc/da = 1 et dc/db = -1
         let grad_fn = if self.requires_grad || other.requires_grad {
             Some(Box::new(move |grad_output: &Tensor| {
-                let negative_grad = grad_output.clone().mul(Tensor::from_data(&[-1.0], vec![1], None));
+                let negative_grad = match grad_output.clone().mul(Tensor::from_data(&[-1.0], vec![1], None)) {
+                    Ok(t) => t,
+                    Err(e) => panic!("Error computing gradient for sub: {}", e),
+                };
                 vec![grad_output.clone(), negative_grad]
             }) as Box<dyn Fn(&Tensor) -> Vec<Tensor> + Send + Sync>)
         } else {
@@ -222,7 +241,10 @@ impl Variable {
     /// Multiplication élément par élément de deux variables
     pub fn mul(&self, other: &Self) -> Self {
         // Opération sur les tenseurs sous-jacents
-        let result_tensor = self.tensor.clone().mul(other.tensor.clone());
+        let result_tensor = match self.tensor.clone().mul(other.tensor.clone()) {
+            Ok(t) => t,
+            Err(e) => panic!("Error in mul operation: {}", e),
+        };
 
         // Si le calcul du gradient est désactivé, retourner un résultat simple
         if !GRAD_ENABLED.with(|cell| *cell.borrow()) {
@@ -236,8 +258,14 @@ impl Variable {
 
         let grad_fn = if self.requires_grad || other.requires_grad {
             Some(Box::new(move |grad_output: &Tensor| {
-                let grad_a = grad_output.clone().mul(b_clone.clone());
-                let grad_b = grad_output.clone().mul(a_clone.clone());
+                let grad_a = match grad_output.clone().mul(b_clone.clone()) {
+                    Ok(t) => t,
+                    Err(e) => panic!("Error computing gradient for mul: {}", e),
+                };
+                let grad_b = match grad_output.clone().mul(a_clone.clone()) {
+                    Ok(t) => t,
+                    Err(e) => panic!("Error computing gradient for mul: {}", e),
+                };
                 vec![grad_a, grad_b]
             }) as Box<dyn Fn(&Tensor) -> Vec<Tensor> + Send + Sync>)
         } else {
@@ -256,7 +284,10 @@ impl Variable {
     /// Division élément par élément de deux variables
     pub fn div(&self, other: &Self) -> Self {
         // Opération sur les tenseurs sous-jacents
-        let result_tensor = self.tensor.clone().div(other.tensor.clone());
+        let result_tensor = match self.tensor.clone().div(other.tensor.clone()) {
+            Ok(t) => t,
+            Err(e) => panic!("Error in div operation: {}", e),
+        };
 
         // Si le calcul du gradient est désactivé, retourner un résultat simple
         if !GRAD_ENABLED.with(|cell| *cell.borrow()) {
@@ -272,15 +303,36 @@ impl Variable {
             Some(Box::new(move |grad_output: &Tensor| {
                 // Calcul de 1/b pour dc/da
                 let one = Tensor::ones(vec![1], None);
-                let b_inv = one.clone().div(b_clone.clone());
-                let grad_a = grad_output.clone().mul(b_inv);
+                let b_inv = match one.clone().div(b_clone.clone()) {
+                    Ok(t) => t,
+                    Err(e) => panic!("Error computing 1/b for div gradient: {}", e),
+                };
+                let grad_a = match grad_output.clone().mul(b_inv) {
+                    Ok(t) => t,
+                    Err(e) => panic!("Error computing grad_a for div: {}", e),
+                };
 
                 // Calcul de -a/b^2 pour dc/db
-                let b_squared = b_clone.clone().mul(b_clone.clone());
-                let b_squared_inv = one.div(b_squared);
-                let a_div_b_squared = a_clone.clone().mul(b_squared_inv);
+                let b_squared = match b_clone.clone().mul(b_clone.clone()) {
+                    Ok(t) => t,
+                    Err(e) => panic!("Error computing b^2 for div gradient: {}", e),
+                };
+                let b_squared_inv = match one.div(b_squared) {
+                    Ok(t) => t,
+                    Err(e) => panic!("Error computing 1/b^2 for div gradient: {}", e),
+                };
+                let a_div_b_squared = match a_clone.clone().mul(b_squared_inv) {
+                    Ok(t) => t,
+                    Err(e) => panic!("Error computing a/b^2 for div gradient: {}", e),
+                };
                 let minus_one = Tensor::from_data(&[-1.0], vec![1], None);
-                let grad_b = grad_output.clone().mul(a_div_b_squared).mul(minus_one);
+                let grad_b = match match grad_output.clone().mul(a_div_b_squared) {
+                    Ok(t) => t,
+                    Err(e) => panic!("Error computing partial grad_b for div: {}", e),
+                }.mul(minus_one) {
+                    Ok(t) => t,
+                    Err(e) => panic!("Error computing final grad_b for div: {}", e),
+                };
 
                 vec![grad_a, grad_b]
             }) as Box<dyn Fn(&Tensor) -> Vec<Tensor> + Send + Sync>)
@@ -296,6 +348,37 @@ impl Variable {
             grad_fn,
         )
     }
+
+    /// Calcule la somme de tous les elements du tenseur
+    pub fn sum(&self) -> Self {
+        let result_tensor = match self.tensor.sum() {
+            Ok(t) => t,
+            Err(e) => panic!("Error in sum operation: {}", e),
+        };
+
+        // Si le calcul du gradient est désactivé, retourner un résultat simple
+        if !GRAD_ENABLED.with(|cell| *cell.borrow()) {
+            return Self::from_tensor(result_tensor, false);
+        }
+
+        // Pour la rétropropagation, le gradient de sum par rapport à chaque élément est 1
+        let self_clone = self.clone();
+        let grad_fn = Box::new(move |_grad_output: &Tensor| {
+            // Pour sum(), le gradient par rapport à chaque élément de l'entrée est 1
+            let ones = Tensor::ones(self_clone.tensor.shape().to_vec(), None);
+            vec![ones]
+        }) as Box<dyn Fn(&Tensor) -> Vec<Tensor> + Send + Sync>;
+
+        // Créer la variable résultante
+        Self::from_operation(
+            result_tensor,
+            Operation::Sum,
+            vec![self.clone()],
+            Some(grad_fn),
+        )
+    }
+
+    // Implémentez de façon similaire d'autres méthodes comme mean(), exp(), log(), etc.
 
     /// Multiplication matricielle de deux variables
     pub fn matmul(&self, other: &Self) -> Self {
@@ -336,14 +419,20 @@ impl Variable {
                 // Pour les tenseurs de dimensions supérieures, plus de travail serait nécessaire
 
                 // Transposons B pour calculer dC/dA = dC @ B.T
-                let b_transposed = b_clone.transpose(0, 1);
+                let b_transposed = match b_clone.transpose(0, 1) {
+                    Ok(t) => t,
+                    Err(e) => panic!("Error transposing B for matmul gradient: {}", e),
+                };
                 let grad_a = match grad_output.matmul(&b_transposed) {
                     Ok(t) => t,
                     Err(e) => panic!("Error computing gradient for matmul: {}", e),
                 };
 
                 // Transposons A pour calculer dC/dB = A.T @ dC
-                let a_transposed = a_clone.transpose(0, 1);
+                let a_transposed = match a_clone.transpose(0, 1) {
+                    Ok(t) => t,
+                    Err(e) => panic!("Error transposing A for matmul gradient: {}", e),
+                };
                 let grad_b = match a_transposed.matmul(grad_output) {
                     Ok(t) => t,
                     Err(e) => panic!("Error computing gradient for matmul: {}", e),
@@ -363,9 +452,6 @@ impl Variable {
             grad_fn,
         )
     }
-
-
-    // Calcule la Power d'une variable dans operations
 
     /// Calcule le gradient de cette variable par rapport aux entrées
     pub fn backward(&mut self) {
@@ -407,7 +493,10 @@ impl Variable {
 
                     // Utiliser l'ID plutôt que l'adresse mémoire
                     if let Some(existing_grad) = grad_table.get(&input_var.id) {
-                        let new_grad = existing_grad.clone().add(input_grad.clone());
+                        let new_grad = match existing_grad.clone().add(input_grad.clone()) {
+                            Ok(t) => t,
+                            Err(e) => panic!("Error accumulating gradients: {}", e),
+                        };
                         grad_table.insert(input_var.id, new_grad);
                     } else {
                         grad_table.insert(input_var.id, input_grad.clone());
@@ -435,34 +524,6 @@ impl Variable {
         }
     }
 
-
-    /// Calcule la somme de tous les elements du tenseur
-    pub fn sum(&self) -> Self{
-        let result_tensor = self.tensor.sum();
-
-        // Si le calcul du gradient est désactivé, retourner un résultat simple
-        if !GRAD_ENABLED.with(|cell| *cell.borrow()) {
-            return Self::from_tensor(result_tensor, false);
-        }
-
-
-        // pour la rétropropagation, le gradient de sum par rapport à chaque élément est 1
-        let self_clone = self.clone();
-        let grad_fn = Box::new(move|_grad_output: &Tensor| {
-            // Pour sum(), le gradient par rapport à chaque élément de l'entrée est 1
-            let ones = Tensor::ones(self_clone.tensor.shape().to_vec(),None);
-            vec![ones]
-        }) as Box<dyn Fn(&Tensor) -> Vec<Tensor>+ Send +Sync>;
-
-        // Créer la variable résultante
-        Self::from_operation(
-            result_tensor,
-            Operation::None, // On pourrait ajouter un type d'opération Sum si nécessaire
-            vec![self.clone()],
-            Some(grad_fn),
-        )
-    }
-
     pub fn grad(&self) -> Option<Tensor> {
         if self.is_leaf && self.requires_grad {
             VARIABLES.with(|vars| {
@@ -476,6 +537,15 @@ impl Variable {
         }
     }
 
+
+    // /// convertir une variable en f64
+    // pub fn to_f64(&self) -> Result<f64, String> {
+    //     match self.tensor.storage().as_ref() {
+    //         rustytorch_tensor::storage::StorageType::F32(data) => Ok(data[0] as f64),
+    //         rustytorch_tensor::storage::StorageType::F64(data) => Ok(data[0]),
+    //         _ => Err("Unsupported storage type for conversion to f64".to_string()),
+    //     }
+    // }
 }
 
 // Context pour desactiver temporairement le calcul du gradient
@@ -484,8 +554,7 @@ pub struct NoGradGuard {
 }
 
 /// Implémentation de NoGradGuard pour désactiver le calcul du gradient
-
-impl NoGradGuard{
+impl NoGradGuard {
     pub fn new() -> Self {
         let prev = GRAD_ENABLED.with(|cell| *cell.borrow());
         GRAD_ENABLED.with(|cell| *cell.borrow_mut() = false);
@@ -494,16 +563,14 @@ impl NoGradGuard{
 }
 
 /// Implémentation de Drop pour restaurer l'état précédent
-
-impl Drop for NoGradGuard{
+impl Drop for NoGradGuard {
     fn drop(&mut self) {
         GRAD_ENABLED.with(|cell| *cell.borrow_mut() = self.prev_enabled);
     }
 }
 
-
 /// Fonction utilitaire pour créer un guard qui désactive le calcul de gradient
-pub fn no_grad() -> NoGradGuard{
+pub fn no_grad() -> NoGradGuard {
     NoGradGuard::new()
 }
 
