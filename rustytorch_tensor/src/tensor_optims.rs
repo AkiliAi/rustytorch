@@ -1,16 +1,18 @@
 // rustytorch_tensor/src/tensor_optims.rs
 
+use std::f64::consts::PI;
 use rayon::prelude::*;
 use crate::Tensor;
 use crate::storage::StorageType;
 use crate::tensor_errors::TensorError;
 use crate::tensor_errors::TensorErrorType;
 use std::sync::Arc;
+use rustytorch_core::NumericOps;
 
 /// Module contenant des optimisations pour les opérations tensorielles
 impl Tensor {
-    /// Applique une opération unaire optimisée élément par élément sur le tenseur
-    pub(crate) fn apply_unary_op<F32Op, F64Op>(&self, f32_op: F32Op, f64_op: F64Op) -> Result<Self, TensorError>
+    /// Applique une opération unaire optimisé élément par élément sur le tenseur
+    pub fn apply_unary_op<F32Op, F64Op>(&self, f32_op: F32Op, f64_op: F64Op) -> Result<Self, TensorError>
     where
         F32Op: Fn(f32) -> f32 + Sync + Send,
         F64Op: Fn(f64) -> f64 + Sync + Send,
@@ -62,7 +64,7 @@ impl Tensor {
     }
 
     /// Applique une opération binaire optimisée élément par élément sur deux tenseurs
-    pub(crate) fn apply_binary_op<F32Op, F64Op>(&self, other: &Self, f32_op: F32Op, f64_op: F64Op) -> Result<Self, TensorError>
+    pub fn apply_binary_op<F32Op, F64Op>(&self, other: &Self, f32_op: F32Op, f64_op: F64Op) -> Result<Self, TensorError>
     where
         F32Op: Fn(f32, f32) -> f32 + Sync + Send,
         F64Op: Fn(f64, f64) -> f64 + Sync + Send,
@@ -165,15 +167,7 @@ impl Tensor {
         )
     }
 
-    /// Applique une fonction d'activation cosh optimisée
-    pub fn cosh(&self) -> Result<Self, TensorError> {
-        self.apply_unary_op(
-            |x| x.cosh(),
-            |x| x.cosh()
-        )
-    }
-
-    /// Applique une fonction d'activation sinh optimisée
+    /// Calcule le sinus hyperbolique pour chaque élément du tenseur
     pub fn sinh(&self) -> Result<Self, TensorError> {
         self.apply_unary_op(
             |x| x.sinh(),
@@ -181,7 +175,15 @@ impl Tensor {
         )
     }
 
-    /// Applique une fonction d'activation tanh optimisée
+    /// Calcule le cosinus hyperbolique pour chaque élément du tenseur
+    pub fn cosh(&self) -> Result<Self, TensorError> {
+        self.apply_unary_op(
+            |x| x.cosh(),
+            |x| x.cosh()
+        )
+    }
+
+    /// Calcule la tangente hyperbolique pour chaque élément du tenseur
     pub fn tanh(&self) -> Result<Self, TensorError> {
         self.apply_unary_op(
             |x| x.tanh(),
@@ -199,7 +201,7 @@ impl Tensor {
         )
     }
 
-    /// Calcule l'exponentielle de chaque élément
+    /// Calcule l'exponentielle (e^x) pour chaque élément du tenseur
     pub fn exp(&self) -> Result<Self, TensorError> {
         self.apply_unary_op(
             |x| x.exp(),
@@ -207,11 +209,19 @@ impl Tensor {
         )
     }
 
-    /// Calcule le logarithme naturel de chaque élément
+    /// Calcule le logarithme naturel (ln(x)) pour chaque élément du tenseur
     pub fn log(&self) -> Result<Self, TensorError> {
         self.apply_unary_op(
             |x| if x > 0.0 { x.ln() } else { f32::NAN },
             |x| if x > 0.0 { x.ln() } else { f64::NAN }
+        )
+    }
+
+    /// Calcule le logarithme de base 10 pour chaque élément du tenseur
+    pub fn log10(&self) -> Result<Self, TensorError> {
+        self.apply_unary_op(
+            |x| if x > 0.0 { x.log10() } else { f32::NAN },
+            |x| if x > 0.0 { x.log10() } else { f64::NAN }
         )
     }
 
@@ -236,6 +246,30 @@ impl Tensor {
         self.apply_unary_op(
             |x| x.tan(),
             |x| x.tan()
+        )
+    }
+
+    /// Calcule l'arc sinus pour chaque élément du tenseur
+    pub fn asin(&self) -> Result<Self, TensorError> {
+        self.apply_unary_op(
+            |x| if x >= -1.0 && x <= 1.0 { x.asin() } else { f32::NAN },
+            |x| if x >= -1.0 && x <= 1.0 { x.asin() } else { f64::NAN }
+        )
+    }
+
+    /// Calcule l'arc cosinus pour chaque élément du tenseur
+    pub fn acos(&self) -> Result<Self, TensorError> {
+        self.apply_unary_op(
+            |x| if x >= -1.0 && x <= 1.0 { x.acos() } else { f32::NAN },
+            |x| if x >= -1.0 && x <= 1.0 { x.acos() } else { f64::NAN }
+        )
+    }
+
+    /// Calcule l'arc tangente pour chaque élément du tenseur
+    pub fn atan(&self) -> Result<Self, TensorError> {
+        self.apply_unary_op(
+            |x| x.atan(),
+            |x| x.atan()
         )
     }
 
@@ -461,6 +495,137 @@ impl Tensor {
                                     |tanh_x, grad| (1.0 - tanh_x * tanh_x) * grad
         )
     }
+
+    /// Arrondit chaque élément du tenseur au nombre entier le plus proche
+    pub fn round(&self) -> Result<Self, TensorError> {
+        self.apply_unary_op(
+            |x| x.round(),
+            |x| x.round()
+        )
+    }
+
+    /// Arrondit chaque élément du tenseur à l'entier inférieur
+    pub fn floor(&self) -> Result<Self, TensorError> {
+        self.apply_unary_op(
+            |x| x.floor(),
+            |x| x.floor()
+        )
+    }
+
+    /// Arrondit chaque élément du tenseur à l'entier supérieur
+    pub fn ceil(&self) -> Result<Self, TensorError> {
+        self.apply_unary_op(
+            |x| x.ceil(),
+            |x| x.ceil()
+        )
+    }
+
+    /// Calcule la valeur absolue pour chaque élément du tenseur
+    pub fn abs(&self) -> Result<Self, TensorError> {
+        self.apply_unary_op(
+            |x| x.abs(),
+            |x| x.abs()
+        )
+    }
+
+    /// Calcule la racine carrée pour chaque élément du tenseur
+    pub fn sqrt(&self) -> Result<Self, TensorError> {
+        self.apply_unary_op(
+            |x| if x >= 0.0 { x.sqrt() } else { f32::NAN },
+            |x| if x >= 0.0 { x.sqrt() } else { f64::NAN }
+        )
+    }
+
+    /// Convertit les radians en degrés
+    pub fn rad2deg(&self) -> Result<Self, TensorError> {
+        let rad_to_deg_f32 = (180.0 / PI) as f32;
+        let rad_to_deg_f64 = 180.0 / PI;
+
+        self.apply_unary_op(
+            |x| x * rad_to_deg_f32,
+            |x| x * rad_to_deg_f64
+        )
+    }
+
+    /// Convertit les degrés en radians
+    pub fn deg2rad(&self) -> Result<Self, TensorError> {
+        let deg_to_rad_f32 = (PI / 180.0) as f32;
+        let deg_to_rad_f64 = PI / 180.0;
+
+        self.apply_unary_op(
+            |x| x * deg_to_rad_f32,
+            |x| x * deg_to_rad_f64
+        )
+    }
+
+    // /// Calcule le gradient de la fonction exp
+    // pub fn exp_backward(&self, grad_output: &Self) -> Result<Self, TensorError> {
+    //     // Le gradient de exp(x) est exp(x) * grad_output
+    //     let exp_result = self.exp()?;
+    //     exp_result.mul(grad_output)
+    // }
+    //
+    // /// Calcule le gradient de la fonction log
+    // pub fn log_backward(&self, grad_output: &Self) -> Result<Self, TensorError> {
+    //     // Le gradient de log(x) est (1/x) * grad_output
+    //     let one = Self::ones(vec![1], Some(self.options.clone()))?;
+    //     let recip = one.div(self)?;
+    //     recip.mul(grad_output)
+    // }
+    //
+    // /// Calcule le gradient de la fonction sin
+    // pub fn sin_backward(&self, grad_output: &Self) -> Result<Self, TensorError> {
+    //     // Le gradient de sin(x) est cos(x) * grad_output
+    //     let cos_result = self.cos()?;
+    //     cos_result.mul(grad_output)
+    // }
+    //
+    // /// Calcule le gradient de la fonction cos
+    // pub fn cos_backward(&self, grad_output: &Self) -> Result<Self, TensorError> {
+    //     // Le gradient de cos(x) est -sin(x) * grad_output
+    //     let sin_result = self.sin()?;
+    //     let neg_sin = sin_result.neg()?;
+    //     neg_sin.mul(grad_output)
+    // }
+    //
+    // // Calcule le gradient de la fonction tan
+    // pub fn tan_backward(&self, grad_output: &Self) -> Result<Self, TensorError> {
+    //     // Le gradient de tan(x) est (1 + tan^2(x)) * grad_output
+    //     let tan_result = self.tan()?;
+    //     let result =  tan_result.clone();
+    //     let tan_squared = tan_result.mul(result)?;
+    //     let one = Self::ones(self.shape().to_vec(), Some(self.options.clone()))?;
+    //     let one_plus_tan_squared = one.add(&tan_squared)?;
+    //     one_plus_tan_squared.mul(grad_output)
+    // }
+
+    /// Calcule l'opposé de chaque élément du tenseur
+    pub fn neg(&self) -> Result<Self, TensorError> {
+        self.apply_unary_op(
+            |x| -x,
+            |x| -x
+        )
+    }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 }
 
 // Tests pour les optimisations du module tensor
@@ -552,4 +717,126 @@ mod tests {
             _ => panic!("Unexpected storage type"),
         }
     }
+
+    #[test]
+    fn test_exp_log() {
+        let tensor = Tensor::from_data(&[1.0, 2.0, 3.0], vec![3], None);
+
+        // Test exp
+        let exp_result = tensor.exp().unwrap();
+        match exp_result.storage.as_ref() {
+            StorageType::F32(data) => {
+                assert!((data[0] - 2.7183).abs() < 0.0001); // e^1 ≈ 2.7183
+                assert!((data[1] - 7.3891).abs() < 0.0001); // e^2 ≈ 7.3891
+                assert!((data[2] - 20.0855).abs() < 0.0001); // e^3 ≈ 20.0855
+            },
+            StorageType::F64(data) => {
+                assert!((data[0] - 2.7183).abs() < 0.0001);
+                assert!((data[1] - 7.3891).abs() < 0.0001);
+                assert!((data[2] - 20.0855).abs() < 0.0001);
+            },
+            _ => panic!("Unexpected storage type"),
+        }
+
+        // Test log
+        let log_result = exp_result.log().unwrap();
+        match log_result.storage.as_ref() {
+            StorageType::F32(data) => {
+                // log(exp(x)) = x
+                assert!((data[0] - 1.0).abs() < 0.0001);
+                assert!((data[1] - 2.0).abs() < 0.0001);
+                assert!((data[2] - 3.0).abs() < 0.0001);
+            },
+            StorageType::F64(data) => {
+                assert!((data[0] - 1.0).abs() < 0.0001);
+                assert!((data[1] - 2.0).abs() < 0.0001);
+                assert!((data[2] - 3.0).abs() < 0.0001);
+            },
+            _ => panic!("Unexpected storage type"),
+        }
+    }
+
+    #[test]
+    fn test_trig_functions() {
+        let pi = std::f64::consts::PI;
+        let tensor = Tensor::from_data(&[0.0, pi/4.0, pi/2.0], vec![3], None);
+
+        // Test sin
+        let sin_result = tensor.sin().unwrap();
+        match sin_result.storage.as_ref() {
+            StorageType::F32(data) => {
+                assert!((data[0] - 0.0).abs() < 0.0001); // sin(0) = 0
+                assert!((data[1] - 0.7071).abs() < 0.0001); // sin(pi/4) ≈ 0.7071
+                assert!((data[2] - 1.0).abs() < 0.0001); // sin(pi/2) = 1
+            },
+            StorageType::F64(data) => {
+                assert!((data[0] - 0.0).abs() < 0.0001);
+                assert!((data[1] - 0.7071).abs() < 0.0001);
+                assert!((data[2] - 1.0).abs() < 0.0001);
+            },
+            _ => panic!("Unexpected storage type"),
+        }
+
+        // Test cos
+        let cos_result = tensor.cos().unwrap();
+        match cos_result.storage.as_ref() {
+            StorageType::F32(data) => {
+                assert!((data[0] - 1.0).abs() < 0.0001); // cos(0) = 1
+                assert!((data[1] - 0.7071).abs() < 0.0001); // cos(pi/4) ≈ 0.7071
+                assert!((data[2] - 0.0).abs() < 0.0001); // cos(pi/2) = 0
+            },
+            StorageType::F64(data) => {
+                assert!((data[0] - 1.0).abs() < 0.0001);
+                assert!((data[1] - 0.7071).abs() < 0.0001);
+                assert!((data[2] - 0.0).abs() < 0.0001);
+            },
+            _ => panic!("Unexpected storage type"),
+        }
+    }
+
+    #[test]
+    fn test_sqrt_abs() {
+        let tensor = Tensor::from_data(&[-4.0, 0.0, 4.0, 9.0], vec![4], None);
+
+        // Test sqrt
+        let sqrt_result = tensor.sqrt().unwrap();
+        match sqrt_result.storage.as_ref() {
+            StorageType::F32(data) => {
+                assert!(data[0].is_nan()); // sqrt(-4) = NaN
+                assert!((data[1] - 0.0).abs() < 0.0001); // sqrt(0) = 0
+                assert!((data[2] - 2.0).abs() < 0.0001); // sqrt(4) = 2
+                assert!((data[3] - 3.0).abs() < 0.0001); // sqrt(9) = 3
+            },
+            StorageType::F64(data) => {
+                assert!(data[0].is_nan());
+                assert!((data[1] - 0.0).abs() < 0.0001);
+                assert!((data[2] - 2.0).abs() < 0.0001);
+                assert!((data[3] - 3.0).abs() < 0.0001);
+            },
+            _ => panic!("Unexpected storage type"),
+        }
+
+        // Test abs
+        let abs_result = tensor.abs().unwrap();
+        match abs_result.storage.as_ref() {
+            StorageType::F32(data) => {
+                assert!((data[0] - 4.0).abs() < 0.0001); // abs(-4) = 4
+                assert!((data[1] - 0.0).abs() < 0.0001); // abs(0) = 0
+                assert!((data[2] - 4.0).abs() < 0.0001); // abs(4) = 4
+                assert!((data[3] - 9.0).abs() < 0.0001); // abs(9) = 9
+            },
+            StorageType::F64(data) => {
+                assert!((data[0] - 4.0).abs() < 0.0001);
+                assert!((data[1] - 0.0).abs() < 0.0001);
+                assert!((data[2] - 4.0).abs() < 0.0001);
+                assert!((data[3] - 9.0).abs() < 0.0001);
+            },
+            _ => panic!("Unexpected storage type"),
+        }
+    }
+
+
+
+
+
 }
