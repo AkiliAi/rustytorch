@@ -1,11 +1,8 @@
 //rustytorch_examples/src/main.rs
 
 use rustytorch_autograd::{no_grad, Operation, Variable};
-use rustytorch_core::{Reshapable,Reduction};
-use rustytorch_tensor::{Tensor};
-
-
-
+use rustytorch_core::{Reduction, Reshapable};
+use rustytorch_tensor::Tensor;
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     // println!("RustyTorch - Exemple de base de tenseurs");
@@ -58,8 +55,22 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     var_c.backward();
 
     // Afficher les gradients
-    println!("dc/da = {}", extract_scalar(&var_a.grad().unwrap_or_else(|| panic!("Gradient for a is None"))));
-    println!("dc/db = {}", extract_scalar(&var_b.grad().unwrap_or_else(|| panic!("Gradient for b is None"))));
+    println!(
+        "dc/da = {}",
+        extract_scalar(
+            &var_a
+                .grad()
+                .unwrap_or_else(|| panic!("Gradient for a is None"))
+        )
+    );
+    println!(
+        "dc/db = {}",
+        extract_scalar(
+            &var_b
+                .grad()
+                .unwrap_or_else(|| panic!("Gradient for b is None"))
+        )
+    );
 
     // ====== Exemple 2: Expression plus complexe ======
     println!("\nExemple 2: Expression plus complexe");
@@ -85,14 +96,31 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let mut result = x_plus_2y.mul(&x_squared);
 
     println!("x = 3.0, y = 4.0");
-    println!("f(x, y) = (x + 2*y) * (x^2) = {}", extract_scalar(&result.tensor));
+    println!(
+        "f(x, y) = (x + 2*y) * (x^2) = {}",
+        extract_scalar(&result.tensor)
+    );
 
     // Propager les gradients
     result.backward();
 
     // Afficher les gradients
-    println!("df/dx = {}", extract_scalar(&var_x.grad().unwrap_or_else(|| panic!("Gradient for x is None"))));
-    println!("df/dy = {}", extract_scalar(&var_y.grad().unwrap_or_else(|| panic!("Gradient for y is None"))));
+    println!(
+        "df/dx = {}",
+        extract_scalar(
+            &var_x
+                .grad()
+                .unwrap_or_else(|| panic!("Gradient for x is None"))
+        )
+    );
+    println!(
+        "df/dy = {}",
+        extract_scalar(
+            &var_y
+                .grad()
+                .unwrap_or_else(|| panic!("Gradient for y is None"))
+        )
+    );
 
     // ====== Exemple 3: Utilisation de no_grad ======
     println!("\nExemple 3: Utilisation de no_grad");
@@ -141,7 +169,6 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     Ok(())
 }
 
-
 /// Fonction utilitaire pour extraire un scalaire d'un tenseur
 fn extract_scalar(tensor: &Tensor) -> f64 {
     let storage = tensor.storage();
@@ -152,14 +179,14 @@ fn extract_scalar(tensor: &Tensor) -> f64 {
             } else {
                 std::f64::NAN
             }
-        },
+        }
         rustytorch_tensor::storage::StorageType::F64(data) => {
             if data.len() >= 1 {
                 data[0]
             } else {
                 std::f64::NAN
             }
-        },
+        }
         _ => std::f64::NAN,
     }
 }
