@@ -1,5 +1,13 @@
 //rustytorch_examples/src/main.rs
 
+mod advanced_linalg;
+mod new_reductions;
+mod padding_demo;
+mod random_generators_demo;
+mod initializers_demo;
+mod decompositions_demo;
+mod device_demo;
+
 use rustytorch_autograd::{no_grad, Operation, Variable};
 use rustytorch_core::{Reduction, Reshapable};
 use rustytorch_tensor::Tensor;
@@ -165,6 +173,34 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("dL/dA et dL/dB calculés (gradients des matrices)");
 
     println!("\nExemple de différentiation automatique terminé!");
+
+    // Lancer la démonstration des nouvelles réductions
+    println!("\n{}", "=".repeat(50));
+    new_reductions::run_new_reductions_demo();
+
+    // Lancer la démonstration du padding et cropping
+    println!("\n{}", "=".repeat(50));
+    padding_demo::run_padding_demo();
+
+    // Lancer la démonstration d'algèbre linéaire avancée
+    println!("\n{}", "=".repeat(50));
+    advanced_linalg::run_advanced_linalg_demo();
+
+    // Lancer la démonstration des générateurs aléatoires
+    println!("\n{}", "=".repeat(50));
+    random_generators_demo::run_random_generators_demo();
+
+    // Lancer la démonstration des initialiseurs
+    println!("\n{}", "=".repeat(50));
+    initializers_demo::run_initializers_demo();
+
+    // Lancer la démonstration des décompositions
+    println!("\n{}", "=".repeat(50));
+    decompositions_demo::run_decompositions_demo();
+
+    // Lancer la démonstration des devices
+    println!("\n{}", "=".repeat(50));
+    device_demo::run_device_demo();
 
     Ok(())
 }
