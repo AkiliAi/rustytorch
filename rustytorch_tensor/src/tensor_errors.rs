@@ -1,19 +1,16 @@
 // rustytorch_tensor/src/tensor_errors.rs
 
-
 use std::fmt;
 use std::fmt::{Display, Formatter};
 
-
-
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct TensorError{
-    pub error : TensorErrorType,
+pub struct TensorError {
+    pub error: TensorErrorType,
     pub message: String,
 }
 
-#[derive(Debug,Clone,PartialEq,Eq)]
-pub enum TensorErrorType{
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum TensorErrorType {
     ShapeMismatch,
     IndexOutOfBounds,
     InvalidOperation,
@@ -26,18 +23,15 @@ pub enum TensorErrorType{
     TypeError,
     BroadcastingError,
     Other,
-
 }
 
-
-impl Display for TensorError{
+impl Display for TensorError {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         write!(f, "TensorError: {:?} - {}", self.error, self.message)
     }
 }
 
-
-impl Display for TensorErrorType{
+impl Display for TensorErrorType {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         match self {
             TensorErrorType::ShapeMismatch => write!(f, "Shape Mismatch"),
@@ -56,17 +50,18 @@ impl Display for TensorErrorType{
     }
 }
 
-
-impl TensorError{
+impl TensorError {
     /// Crée une nouvelle erreur de tenseur
-    pub fn new(error:TensorErrorType,message:&str) -> Self{
-        let message = match &error{
+    pub fn new(error: TensorErrorType, message: &str) -> Self {
+        let message = match &error {
             TensorErrorType::ShapeMismatch => format!("Shape mismatch: {}", message),
             TensorErrorType::IndexOutOfBounds => format!("Index out of bounds: {}", message),
             TensorErrorType::InvalidOperation => format!("Invalid operation: {}", message),
             TensorErrorType::InvalidType => format!("Invalid type: {}", message),
             TensorErrorType::DeviceMismatch => format!("Device mismatch: {}", message),
-            TensorErrorType::MemoryAllocationError => format!("Memory allocation error: {}", message),
+            TensorErrorType::MemoryAllocationError => {
+                format!("Memory allocation error: {}", message)
+            }
             TensorErrorType::UnsupportedOperation => format!("Unsupported operation: {}", message),
             TensorErrorType::StorageError => format!("Storage error: {}", message),
             TensorErrorType::DeviceError => format!("Device error: {}", message),
@@ -74,9 +69,6 @@ impl TensorError{
             TensorErrorType::BroadcastingError => format!("Broadcasting error: {}", message),
             TensorErrorType::Other => format!("Other error: {}", message),
         };
-        TensorError{
-            error,
-            message,
-        }
+        TensorError { error, message }
     }
 }
