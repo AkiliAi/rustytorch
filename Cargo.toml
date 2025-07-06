@@ -11,7 +11,8 @@ members = [ "rustytorch_autograd",
     "rustytorch_tensor",
     "rustytorch_text",
     "rustytorch_utils",
-    "rustytorch_examples", "rustytorch_viz",]
+    "rustytorch_examples",
+    "rustytorch_viz",]
 
 
 
@@ -25,8 +26,9 @@ ndarray = "=0.15.6"
 thiserror = "=1.0"
 log = "=0.4"
 env_logger = "=0.10"
-rand = "=0.9"
+rand = "=0.8.5"
 num-traits = "=0.2"
+num-complex = "=0.4"
 bytemuck = "=1.14"
 serde = {version = "=1.0", features = ["derive"]}
 
