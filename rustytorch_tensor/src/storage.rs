@@ -1,7 +1,7 @@
 // rustytorch_tensor/src/storage.rs
 
-use std::fmt;
 use num_complex::Complex;
+use std::fmt;
 
 /// Enum pour représenter différents types de stockage
 #[derive(Debug, Clone)]
@@ -204,8 +204,12 @@ impl StorageType {
             StorageType::U32(data) => StorageType::U32(vec![0; data.len()]),
             StorageType::U64(data) => StorageType::U64(vec![0; data.len()]),
             StorageType::Bool(data) => StorageType::Bool(vec![false; data.len()]),
-            StorageType::Complex64(data) => StorageType::Complex64(vec![Complex::new(0.0, 0.0); data.len()]),
-            StorageType::Complex128(data) => StorageType::Complex128(vec![Complex::new(0.0, 0.0); data.len()]),
+            StorageType::Complex64(data) => {
+                StorageType::Complex64(vec![Complex::new(0.0, 0.0); data.len()])
+            }
+            StorageType::Complex128(data) => {
+                StorageType::Complex128(vec![Complex::new(0.0, 0.0); data.len()])
+            }
         }
     }
 
@@ -223,13 +227,15 @@ impl StorageType {
             StorageType::U32(data) => StorageType::U32(vec![1; data.len()]),
             StorageType::U64(data) => StorageType::U64(vec![1; data.len()]),
             StorageType::Bool(data) => StorageType::Bool(vec![true; data.len()]),
-            StorageType::Complex64(data) => StorageType::Complex64(vec![Complex::new(1.0, 0.0); data.len()]),
-            StorageType::Complex128(data) => StorageType::Complex128(vec![Complex::new(1.0, 0.0); data.len()]),
+            StorageType::Complex64(data) => {
+                StorageType::Complex64(vec![Complex::new(1.0, 0.0); data.len()])
+            }
+            StorageType::Complex128(data) => {
+                StorageType::Complex128(vec![Complex::new(1.0, 0.0); data.len()])
+            }
         }
     }
 }
-
-
 
 // Tests pour le module storage
 #[cfg(test)]
@@ -273,14 +279,14 @@ mod tests {
         match zeros {
             StorageType::F32(data) => {
                 assert_eq!(data, vec![0.0, 0.0, 0.0]);
-            },
+            }
             _ => panic!("Expected F32 storage"),
         }
 
         match ones {
             StorageType::F32(data) => {
                 assert_eq!(data, vec![1.0, 1.0, 1.0]);
-            },
+            }
             _ => panic!("Expected F32 storage"),
         }
     }
