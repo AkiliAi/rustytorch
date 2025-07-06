@@ -14,6 +14,7 @@ description = "RustyTorch Core Module inpired by PyTorch"
 [dependencies]
 #rayon.workspace = true
 ndarray.workspace = true
+lazy_static = "1.4"
 
 #thiserror.workspace = true
 #log.workspace = true
