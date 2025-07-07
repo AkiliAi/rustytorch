@@ -7,7 +7,7 @@ use std::sync::Arc;
 // use rustytorch_tensor::tensor_errors::TensorError;
 
 // Public exports for initialization functionality
-pub use initializers::{Initializers, FanMode, Nonlinearity};
+pub use initializers::{FanMode, Initializers, Nonlinearity};
 // Public exports for decomposition functionality
 pub use decompositions::Decompositions;
 
@@ -16,13 +16,15 @@ use rayon::prelude::*;
 
 pub mod activations;
 pub mod broadcastings;
+pub mod decompositions;
+pub mod f16_support;
 pub mod indexing;
+pub mod initializers;
 pub mod linalg;
+pub mod memory_pool;
 mod numeric_ops;
 pub mod padding;
 pub mod random_generators;
-pub mod initializers;
-pub mod decompositions;
 pub mod reductions;
 pub mod simd_ops;
 pub mod storage;
@@ -316,7 +318,7 @@ impl Tensor {
     }
 
     // === Matrix Decomposition Methods ===
-    
+
     /// Compute Singular Value Decomposition (SVD)
     /// Returns (U, S, V) where A = U * diag(S) * V^T
     pub fn svd(&self, full_matrices: bool) -> Result<(Tensor, Tensor, Tensor)> {
@@ -327,6 +329,12 @@ impl Tensor {
     /// Returns L (lower triangular) or U (upper triangular) where A = L*L^T or A = U^T*U
     pub fn cholesky(&self, upper: bool) -> Result<Tensor> {
         decompositions::Decompositions::cholesky(self, upper)
+    }
+
+    /// Compute QR decomposition
+    /// Returns (Q, R) where A = Q * R with Q orthogonal and R upper triangular
+    pub fn qr(&self) -> Result<(Tensor, Tensor)> {
+        decompositions::Decompositions::qr(self)
     }
 }
 
@@ -438,7 +446,6 @@ impl Reshapable for Tensor {
 
     // transpose le tenseur
     fn transpose(&self, dim0: usize, dim1: usize) -> Result<Self> {
-        // assert!(dim0 < self.ndim() && dim1 < self.ndim(), "Dimension out of range");
         if dim0 >= self.ndim() || dim1 >= self.ndim() {
             return Err(CoreError::dim_out_of_bounds(
                 dim0.max(dim1),
@@ -446,12 +453,41 @@ impl Reshapable for Tensor {
                 "transpose",
             ));
         }
-        // Créer un nouveau tenseur avec la forme transposée
+        
+        if dim0 == dim1 {
+            return Ok(self.clone());
+        }
+
+        // For now, we'll implement physical transpose (data rearrangement)
+        // This ensures operations like matmul work correctly
+        let shape = self.shape();
+        let mut new_shape = shape.to_vec();
+        new_shape.swap(dim0, dim1);
+
+        // Get the current data
+        let data = self.storage().to_vec_f64();
+
+        // For 2D case (most common), implement direct transpose
+        if self.ndim() == 2 && dim0 != dim1 {
+            let rows = shape[0];
+            let cols = shape[1];
+            let mut transposed_data = vec![0.0; data.len()];
+
+            // Transpose the data: A[i][j] -> A^T[j][i]
+            for i in 0..rows {
+                for j in 0..cols {
+                    transposed_data[j * rows + i] = data[i * cols + j];
+                }
+            }
+
+            // Create new tensor with transposed data
+            return Ok(Tensor::from_data(&transposed_data, new_shape, Some(self.options().clone())));
+        }
+
+        // For higher dimensions, fall back to stride-based approach for now
         let mut result = self.clone();
         result.shape.swap(dim0, dim1);
         result.strides.swap(dim0, dim1);
-
-        // result
         Ok(result)
     }
 
@@ -664,7 +700,7 @@ mod tests_tensor_operation {
     // }
 
     // === Weight Initialization Methods ===
-    
+
     /// Initialize tensor with Xavier/Glorot uniform distribution
     /// Suitable for tanh/sigmoid activations
     pub fn xavier_uniform(

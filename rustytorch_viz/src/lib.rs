@@ -1,8 +1,8 @@
 // Dans rustytorch_viz/src/lib.rs
+use rustytorch_autograd::Variable;
 use std::collections::{HashMap, HashSet};
 use std::fs::File;
 use std::io::Write;
-use rustytorch_autograd::{Variable};
 
 pub struct GraphViz {
     nodes: HashMap<usize, String>,
@@ -23,7 +23,11 @@ impl GraphViz {
             let label = if var.is_leaf {
                 format!("Leaf({:?})", var.tensor.shape())
             } else {
-                format!("{:?}({:?})", var.grad_fn.as_ref().unwrap().operation, var.tensor.shape())
+                format!(
+                    "{:?}({:?})",
+                    var.grad_fn.as_ref().unwrap().operation,
+                    var.tensor.shape()
+                )
             };
             self.nodes.insert(var.id, label);
 
@@ -58,7 +62,6 @@ impl GraphViz {
 
         Ok(())
     }
-
 
     // /// Fonction qui visualise le graphe de calcul à partir de cette variable
     // pub fn visualize_graph(&self, filename: &str) -> Result<(), Box<dyn std::error::Error>> {
@@ -186,8 +189,4 @@ impl GraphViz {
     //     result
     // }
     //
-
-
-
-
 }
