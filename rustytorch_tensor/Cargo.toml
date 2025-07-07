@@ -21,8 +21,10 @@ log.workspace = true
 num-traits.workspace = true
 num-complex.workspace = true
 bytemuck.workspace = true
+half.workspace = true
 serde.workspace = true
 cfg-if.workspace = true
+lazy_static.workspace = true
 
 # Dépendance interne vers rustytorch_core
 rustytorch_core = { path = "../rustytorch_core" }
