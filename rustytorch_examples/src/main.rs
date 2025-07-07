@@ -1,12 +1,14 @@
 //rustytorch_examples/src/main.rs
 
 mod advanced_linalg;
+mod decompositions_demo;
+mod device_demo;
+mod f16_demo;
+mod initializers_demo;
+mod memory_pool_demo;
 mod new_reductions;
 mod padding_demo;
 mod random_generators_demo;
-mod initializers_demo;
-mod decompositions_demo;
-mod device_demo;
 
 use rustytorch_autograd::{no_grad, Operation, Variable};
 use rustytorch_core::{Reduction, Reshapable};
@@ -201,6 +203,14 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Lancer la démonstration des devices
     println!("\n{}", "=".repeat(50));
     device_demo::run_device_demo();
+
+    // Lancer la démonstration F16
+    println!("\n{}", "=".repeat(50));
+    f16_demo::run_f16_demo();
+
+    // Lancer la démonstration Memory Pool
+    println!("\n{}", "=".repeat(50));
+    memory_pool_demo::run_memory_pool_demo();
 
     Ok(())
 }
