@@ -1,8 +1,8 @@
 // rustytorch_autograd/src/cycle_detection.rs
 
+use crate::{Node, Variable};
 use std::collections::{HashMap, HashSet};
 use std::sync::Arc;
-use crate::{Node, Variable};
 
 /// Type d'erreur pour les opérations d'autograd
 #[derive(Debug, Clone)]
@@ -11,14 +11,17 @@ pub enum AutogradError {
     CycleDetected(String),
     /// Erreur générique pour les opérations d'autograd
     OperationFailed(String),
-
 }
 
 impl std::fmt::Display for AutogradError {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         match self {
-            AutogradError::CycleDetected(message) => write!(f, "Cycle detected in computation graph: {}", message),
-            AutogradError::OperationFailed(message) => write!(f, "Autograd operation failed: {}", message),
+            AutogradError::CycleDetected(message) => {
+                write!(f, "Cycle detected in computation graph: {}", message)
+            }
+            AutogradError::OperationFailed(message) => {
+                write!(f, "Autograd operation failed: {}", message)
+            }
         }
     }
 }
@@ -69,9 +72,10 @@ impl CycleDetector {
 
         // Si nous revisitions un nœud en cours de visite, c'est un cycle
         if self.visiting.contains(&tensor_id) {
-            return Err(AutogradError::CycleDetected(
-                format!("Cycle detected involving tensor at address {:p}", &var.tensor)
-            ));
+            return Err(AutogradError::CycleDetected(format!(
+                "Cycle detected involving tensor at address {:p}",
+                &var.tensor
+            )));
         }
 
         // Marquer ce nœud comme en cours de visite
