@@ -2,11 +2,8 @@
 
 use std::error::Error;
 use std::fmt;
-use std::fmt::Formatter;
 use std::fmt::Display;
-
-
-
+use std::fmt::Formatter;
 
 // Erreur du module de réseau de neurones
 #[derive(Debug)]
