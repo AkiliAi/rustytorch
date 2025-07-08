@@ -3,19 +3,16 @@
 pub mod cycle_detection;
 pub mod operations;
 
-/// Créez un module pour l'autograd
-
-
-// use rustytorch_tensor::TensorError;
-
-use rustytorch_tensor::Tensor;
 use rustytorch_core::{NumericOps, Reduction, Reshapable};
-use std::collections::HashMap;
-use std::sync::Arc;
+/// Créez un module pour l'autograd
+// use rustytorch_tensor::TensorError;
+use rustytorch_tensor::Tensor;
 use std::cell::RefCell;
+use std::collections::HashMap;
 use std::env::vars;
-use std::thread_local;
 use std::fmt::{Debug, Display, Formatter};
+use std::sync::Arc;
+use std::thread_local;
 
 // Variable globale pour activer/désactiver le calcul du gradient
 thread_local! {
@@ -34,7 +31,7 @@ fn get_next_id() -> usize {
 }
 
 ///Node pour le graphe de calcul
-pub struct Node{
+pub struct Node {
     pub operation: Operation,
     pub inputs: Vec<Variable>,
     pub grad_fn: Option<Box<dyn Fn(&Tensor) -> Vec<Tensor> + Send + Sync>>,
@@ -63,8 +60,8 @@ impl Debug for Node {
 }
 
 /// Structure pour suivre les Operations executées
-#[derive(Clone,Debug)]
-pub enum Operation{
+#[derive(Clone, Debug)]
+pub enum Operation {
     Add,
     Sub,
     Mul,
@@ -73,9 +70,12 @@ pub enum Operation{
     Pow,
     Exp,
     Log,
+    Sin,
+    Cos,
     Sigmoid,
     Relu,
     Tanh,
+    Tan,
     Softmax,
     Sum,
     Mean,
@@ -94,9 +94,12 @@ impl Display for Operation {
             Operation::Pow => write!(f, "Pow"),
             Operation::Exp => write!(f, "Exp"),
             Operation::Log => write!(f, "Log"),
+            Operation::Sin => write!(f, "Sin"),
+            Operation::Cos => write!(f, "Cos"),
             Operation::Sigmoid => write!(f, "Sigmoid"),
             Operation::Relu => write!(f, "ReLU"),
             Operation::Tanh => write!(f, "Tanh"),
+            Operation::Tan => write!(f, "Tan"),
             Operation::Softmax => write!(f, "Softmax"),
             Operation::Sum => write!(f, "Sum"),
             Operation::Mean => write!(f, "Mean"),
@@ -106,14 +109,14 @@ impl Display for Operation {
 }
 
 // Variable avec suivi de gradient
-#[derive(Clone,Debug)]
-pub struct Variable{
+#[derive(Clone, Debug)]
+pub struct Variable {
     pub tensor: Tensor,
     pub requires_grad: bool,
     pub is_leaf: bool,
     pub grad: Option<Tensor>,
     pub grad_fn: Option<Arc<Node>>,
-    pub id: usize,  // ID unique variable
+    pub id: usize, // ID unique variable
 }
 
 impl Variable {
@@ -144,8 +147,8 @@ impl Variable {
         inputs: Vec<Variable>,
         grad_fn: Option<Box<dyn Fn(&Tensor) -> Vec<Tensor> + Send + Sync>>,
     ) -> Self {
-        let requires_grad = GRAD_ENABLED.with(|cell| *cell.borrow()) &&
-            inputs.iter().any(|v| v.requires_grad);
+        let requires_grad =
+            GRAD_ENABLED.with(|cell| *cell.borrow()) && inputs.iter().any(|v| v.requires_grad);
 
         let grad_fn = if requires_grad {
             let node = Node {
@@ -188,7 +191,8 @@ impl Variable {
         let grad_fn = if self.requires_grad || other.requires_grad {
             Some(Box::new(move |grad_output: &Tensor| {
                 vec![grad_output.clone(), grad_output.clone()]
-            }) as Box<dyn Fn(&Tensor) -> Vec<Tensor> + Send + Sync>)
+            })
+                as Box<dyn Fn(&Tensor) -> Vec<Tensor> + Send + Sync>)
         } else {
             None
         };
@@ -219,12 +223,17 @@ impl Variable {
         // Pour c = a - b, dc/da = 1 et dc/db = -1
         let grad_fn = if self.requires_grad || other.requires_grad {
             Some(Box::new(move |grad_output: &Tensor| {
-                let negative_grad = match grad_output.clone().mul(Tensor::from_data(&[-1.0], vec![1], None)) {
-                    Ok(t) => t,
-                    Err(e) => panic!("Error computing gradient for sub: {}", e),
-                };
+                let negative_grad =
+                    match grad_output
+                        .clone()
+                        .mul(Tensor::from_data(&[-1.0], vec![1], None))
+                    {
+                        Ok(t) => t,
+                        Err(e) => panic!("Error computing gradient for sub: {}", e),
+                    };
                 vec![grad_output.clone(), negative_grad]
-            }) as Box<dyn Fn(&Tensor) -> Vec<Tensor> + Send + Sync>)
+            })
+                as Box<dyn Fn(&Tensor) -> Vec<Tensor> + Send + Sync>)
         } else {
             None
         };
@@ -267,7 +276,8 @@ impl Variable {
                     Err(e) => panic!("Error computing gradient for mul: {}", e),
                 };
                 vec![grad_a, grad_b]
-            }) as Box<dyn Fn(&Tensor) -> Vec<Tensor> + Send + Sync>)
+            })
+                as Box<dyn Fn(&Tensor) -> Vec<Tensor> + Send + Sync>)
         } else {
             None
         };
@@ -329,13 +339,16 @@ impl Variable {
                 let grad_b = match match grad_output.clone().mul(a_div_b_squared) {
                     Ok(t) => t,
                     Err(e) => panic!("Error computing partial grad_b for div: {}", e),
-                }.mul(minus_one) {
+                }
+                .mul(minus_one)
+                {
                     Ok(t) => t,
                     Err(e) => panic!("Error computing final grad_b for div: {}", e),
                 };
 
                 vec![grad_a, grad_b]
-            }) as Box<dyn Fn(&Tensor) -> Vec<Tensor> + Send + Sync>)
+            })
+                as Box<dyn Fn(&Tensor) -> Vec<Tensor> + Send + Sync>)
         } else {
             None
         };
@@ -394,7 +407,10 @@ impl Variable {
         let b_rows = b_shape[b_shape.len() - 2];
 
         if a_cols != b_rows {
-            panic!("Matrix multiplication shape mismatch: {:?} and {:?}", a_shape, b_shape);
+            panic!(
+                "Matrix multiplication shape mismatch: {:?} and {:?}",
+                a_shape, b_shape
+            );
         }
 
         // Opération sur les tenseurs sous-jacents
@@ -439,7 +455,8 @@ impl Variable {
                 };
 
                 vec![grad_a, grad_b]
-            }) as Box<dyn Fn(&Tensor) -> Vec<Tensor> + Send + Sync>)
+            })
+                as Box<dyn Fn(&Tensor) -> Vec<Tensor> + Send + Sync>)
         } else {
             None
         };
@@ -483,8 +500,11 @@ impl Variable {
             if let Some(ref grad_fn) = node.grad_fn {
                 let input_grads = grad_fn(&grad_output);
 
-                assert_eq!(input_grads.len(), node.inputs.len(),
-                           "Number of gradients doesn't match number of inputs");
+                assert_eq!(
+                    input_grads.len(),
+                    node.inputs.len(),
+                    "Number of gradients doesn't match number of inputs"
+                );
 
                 for (input_var, input_grad) in node.inputs.iter().zip(input_grads.iter()) {
                     if !input_var.requires_grad {
@@ -537,7 +557,6 @@ impl Variable {
         }
     }
 
-
     // /// convertir une variable en f64
     // pub fn to_f64(&self) -> Result<f64, String> {
     //     match self.tensor.storage().as_ref() {
@@ -573,15 +592,6 @@ impl Drop for NoGradGuard {
 pub fn no_grad() -> NoGradGuard {
     NoGradGuard::new()
 }
-
-
-
-
-
-
-
-
-
 
 //
 // // Tests pour l'autograd
@@ -739,7 +749,6 @@ pub fn no_grad() -> NoGradGuard {
 //     }
 // }
 //
-
 
 // //rustytorch_autograd/src/lib.rs
 //
