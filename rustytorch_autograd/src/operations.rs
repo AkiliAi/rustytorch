@@ -1,14 +1,14 @@
 //rustytorch_autograd/src/operations.rs
 
-use crate::{Operation, Variable, GRAD_ENABLED, VARIABLES};
+use crate::{Operation, Variable, GRAD_ENABLED};
 use rustytorch_core::{NumericOps, Reduction};
 use rustytorch_tensor::Tensor;
 use std::collections::HashSet;
 impl Variable {
     pub fn relu(&self) -> Self {
-        let result_tensor = self.tensor.relu().expect("Failed to apply ReLU");
+        let result_tensor = self.tensor().relu().expect("Failed to apply ReLU");
 
-        if !self.requires_grad {
+        if !self.requires_grad() {
             return Self::from_tensor(result_tensor, false);
         }
 
@@ -16,7 +16,7 @@ impl Variable {
         let self_clone = self.clone();
         let grad_fn = Box::new(move |grad_output: &Tensor| {
             let grad_input = self_clone
-                .tensor
+                .tensor()
                 .relu_backward(grad_output)
                 .expect("Failed to compute ReLU gradient");
             vec![grad_input]
@@ -32,9 +32,9 @@ impl Variable {
 
     /// Applique la fonction d'activation Sigmoid
     pub fn sigmoid(&self) -> Self {
-        let result_tensor = self.tensor.sigmoid().expect("Failed to apply Sigmoid");
+        let result_tensor = self.tensor().sigmoid().expect("Failed to apply Sigmoid");
 
-        if !self.requires_grad {
+        if !self.requires_grad() {
             return Self::from_tensor(result_tensor, false);
         }
 
@@ -42,7 +42,7 @@ impl Variable {
         let self_clone = self.clone();
         let grad_fn = Box::new(move |grad_output: &Tensor| {
             let grad_input = self_clone
-                .tensor
+                .tensor()
                 .sigmoid_backward(grad_output)
                 .expect("Failed to compute Sigmoid gradient");
             vec![grad_input]
@@ -59,7 +59,7 @@ impl Variable {
     /// Exponentielle d'une variable
     pub fn exp(&self) -> Self {
         // Opération sur le tenseur sous-jacent
-        let result_tensor = match self.tensor.exp() {
+        let result_tensor = match self.tensor().exp() {
             Ok(t) => t,
             Err(e) => panic!("Error in exp: {}", e),
         };
@@ -71,10 +71,10 @@ impl Variable {
 
         // Fonction de gradient pour exp: d(exp(x))/dx = exp(x)
         let self_clone = self.clone();
-        let grad_fn = if self.requires_grad {
+        let grad_fn = if self.requires_grad() {
             Some(Box::new(move |grad_output: &Tensor| {
                 // Le gradient est grad_output * exp(x)
-                let exp_x = match self_clone.tensor.exp() {
+                let exp_x = match self_clone.tensor().exp() {
                     Ok(t) => t,
                     Err(e) => panic!("Error computing gradient for exp: {}", e),
                 };
@@ -96,7 +96,7 @@ impl Variable {
     /// Logarithme naturel d'une variable
     pub fn log(&self) -> Self {
         // Opération sur le tenseur sous-jacent
-        let result_tensor = match self.tensor.log() {
+        let result_tensor = match self.tensor().log() {
             Ok(t) => t,
             Err(e) => panic!("Error in log: {}", e),
         };
@@ -108,11 +108,11 @@ impl Variable {
 
         // Fonction de gradient pour log: d(log(x))/dx = 1/x
         let self_clone = self.clone();
-        let grad_fn = if self.requires_grad {
+        let grad_fn = if self.requires_grad() {
             Some(Box::new(move |grad_output: &Tensor| {
                 // Le gradient est grad_output / x
                 let one = Tensor::ones(vec![1], None);
-                let x_inv = match one.div(self_clone.tensor.clone()) {
+                let x_inv = match one.div(self_clone.tensor()) {
                     Ok(t) => t,
                     Err(e) => panic!("Error computing gradient for log: {}", e),
                 };
@@ -134,7 +134,7 @@ impl Variable {
     /// Sinus d'une variable
     pub fn sin(&self) -> Self {
         // Opération sur le tenseur sous-jacent
-        let result_tensor = match self.tensor.sin() {
+        let result_tensor = match self.tensor().sin() {
             Ok(t) => t,
             Err(e) => panic!("Error in sin: {}", e),
         };
@@ -146,10 +146,10 @@ impl Variable {
 
         // Fonction de gradient pour sin: d(sin(x))/dx = cos(x)
         let self_clone = self.clone();
-        let grad_fn = if self.requires_grad {
+        let grad_fn = if self.requires_grad() {
             Some(Box::new(move |grad_output: &Tensor| {
                 // Le gradient est grad_output * cos(x)
-                let cos_x = match self_clone.tensor.cos() {
+                let cos_x = match self_clone.tensor().cos() {
                     Ok(t) => t,
                     Err(e) => panic!("Error computing gradient for sin: {}", e),
                 };
@@ -171,7 +171,7 @@ impl Variable {
     /// Cosinus d'une variable
     pub fn cos(&self) -> Self {
         // Opération sur le tenseur sous-jacent
-        let result_tensor = match self.tensor.cos() {
+        let result_tensor = match self.tensor().cos() {
             Ok(t) => t,
             Err(e) => panic!("Error in cos: {}", e),
         };
@@ -183,10 +183,10 @@ impl Variable {
 
         // Fonction de gradient pour cos: d(cos(x))/dx = -sin(x)
         let self_clone = self.clone();
-        let grad_fn = if self.requires_grad {
+        let grad_fn = if self.requires_grad() {
             Some(Box::new(move |grad_output: &Tensor| {
                 // Le gradient est grad_output * (-sin(x))
-                let sin_x = match self_clone.tensor.sin() {
+                let sin_x = match self_clone.tensor().sin() {
                     Ok(t) => t,
                     Err(e) => panic!("Error computing gradient for cos: {}", e),
                 };
@@ -213,7 +213,7 @@ impl Variable {
     /// Tangente d'une variable
     pub fn tan(&self) -> Self {
         // Opération sur le tenseur sous-jacent
-        let result_tensor = match self.tensor.tan() {
+        let result_tensor = match self.tensor().tan() {
             Ok(t) => t,
             Err(e) => panic!("Error in tan: {}", e),
         };
@@ -226,14 +226,14 @@ impl Variable {
         // Fonction de gradient pour tan: d(tan(x))/dx = 1 / (cos(x))^2 = 1 + tan(x)^2
         let self_clone = self.clone();
         let result_clone = result_tensor.clone();
-        let grad_fn = if self.requires_grad {
+        let grad_fn = if self.requires_grad() {
             Some(Box::new(move |grad_output: &Tensor| {
                 // Le gradient est grad_output * (1 + tan(x)^2)
                 let tan_squared = result_clone
                     .clone()
                     .mul(result_clone.clone())
                     .expect("Failed to square tan in gradient");
-                let one = Tensor::ones(self_clone.tensor.shape().to_vec(), None);
+                let one = Tensor::ones(self_clone.tensor().shape().to_vec(), None);
                 let derivative = one
                     .add(tan_squared)
                     .expect("Failed to add one to tan squared in gradient");
@@ -258,7 +258,7 @@ impl Variable {
         let exp_tensor = Tensor::from_data(&[exponent], vec![1], None);
 
         // Opération sur le tenseur sous-jacent
-        let result_tensor = match self.tensor.clone().pow(exp_tensor) {
+        let result_tensor = match self.tensor().pow(exp_tensor) {
             Ok(t) => t,
             Err(e) => panic!("Error in pow: {}", e),
         };
@@ -273,11 +273,11 @@ impl Variable {
         let exp_minus_one = exponent - 1.0;
         let exp_value = exponent;
 
-        let grad_fn = if self.requires_grad {
+        let grad_fn = if self.requires_grad() {
             Some(Box::new(move |grad_output: &Tensor| {
                 // Le gradient est grad_output * y * x^(y-1)
                 let exp_minus_one_tensor = Tensor::from_data(&[exp_minus_one], vec![1], None);
-                let x_pow_y_minus_1 = match self_clone.tensor.clone().pow(exp_minus_one_tensor) {
+                let x_pow_y_minus_1 = match self_clone.tensor().pow(exp_minus_one_tensor) {
                     Ok(t) => t,
                     Err(e) => panic!("Error computing gradient for pow: {}", e),
                 };
@@ -307,7 +307,7 @@ impl Variable {
 
     /// Calcule la moyenne de tous les éléments du tenseur
     pub fn mean(&self) -> Self {
-        let result_tensor = match self.tensor.mean() {
+        let result_tensor = match self.tensor().mean() {
             Ok(t) => t,
             Err(e) => panic!("Error in mean: {}", e),
         };
@@ -321,12 +321,12 @@ impl Variable {
         let self_clone = self.clone();
         let grad_fn = Box::new(move |grad_output: &Tensor| {
             // Pour mean(), le gradient par rapport à chaque élément de l'entrée est 1/n
-            let n = self_clone.tensor.numel() as f64;
+            let n = self_clone.tensor().numel() as f64;
             let scale = 1.0 / n;
             let scale_tensor = Tensor::from_data(&[scale], vec![1], None);
 
             // Multiplier le gradient de sortie par 1/n et le diffuser à tous les éléments
-            let ones = Tensor::ones(self_clone.tensor.shape().to_vec(), None);
+            let ones = Tensor::ones(self_clone.tensor().shape().to_vec(), None);
             let scaled_ones = ones
                 .mul(scale_tensor)
                 .expect("Failed to scale ones in mean gradient");
@@ -346,6 +346,49 @@ impl Variable {
             Some(grad_fn),
         )
     }
+
+
+
+
+    /// Applique la fonction d'activation Tanh avec support autograd
+    ///
+    /// Tanh(x) = (exp(x) - exp(-x)) / (exp(x) + exp(-x))
+    /// Gradient: d(Tanh(x))/dx = 1 - Tanh(x)²
+
+    pub fn tanh(&self) -> Self {
+        let result_tensor = match self.tensor().tanh() {
+            Ok(t) => t,
+            Err(e) => panic!("Error in tanh: {}", e),
+        };
+
+        if !GRAD_ENABLED.with(|cell| *cell.borrow()) {
+            return Self::from_tensor(result_tensor, false);
+        }
+
+        let self_clone = self.clone();
+        let grad_fn = if self.requires_grad() {
+            Some(Box::new(move |grad_output: &Tensor| {
+                match self_clone.tensor().tanh_backward(grad_output) {
+                    Ok(t) => vec![t],
+                    Err(e) => panic!("Error computing gradient for tanh: {}", e),
+                }
+            }) as Box<dyn Fn(&Tensor) -> Vec<Tensor> + Send + Sync>)
+        } else {
+            None
+        };
+
+        Self::from_operation(
+            result_tensor,
+            Operation::Tanh,
+            vec![self.clone()],
+            grad_fn,
+        )
+    }
+
+    // NOTE: swish, gelu, mish, leaky_relu seront implémentés plus tard
+    // une fois que les méthodes correspondantes seront ajoutées au struct Tensor
+
+
 
     /// Fonction qui visualise le graphe de calcul à partir de cette variable
     pub fn visualize_graph(&self, filename: &str) -> Result<(), Box<dyn std::error::Error>> {
@@ -371,28 +414,29 @@ impl Variable {
             edges: &mut HashSet<(usize, usize)>,
         ) {
             // Si ce nœud a déjà été visité, on s'arrête
-            if !visited.insert(var.id) {
+            if !visited.insert(var.id()) {
                 return;
             }
 
             // Ajouter ce nœud au graphe
-            let label = if var.is_leaf {
+            let data = var.data.read().unwrap();
+            let label = if var.is_leaf() {
                 format!(
                     "{}\\nLeaf: {}\\nRequires grad: {}",
-                    var.id, var.is_leaf, var.requires_grad
+                    var.id(), var.is_leaf(), var.requires_grad()
                 )
-            } else if let Some(ref node) = var.grad_fn {
+            } else if let Some(ref node) = data.grad_fn {
                 format!(
                     "{}\\nOp: {}\\nRequires grad: {}",
-                    var.id, node.operation, var.requires_grad
+                    var.id(), node.operation, var.requires_grad()
                 )
             } else {
-                format!("{}\\nRequires grad: {}", var.id, var.requires_grad)
+                format!("{}\\nRequires grad: {}", var.id(), var.requires_grad())
             };
 
-            let color = if var.is_leaf {
+            let color = if var.is_leaf() {
                 "lightgreen"
-            } else if var.requires_grad {
+            } else if var.requires_grad() {
                 "lightblue"
             } else {
                 "lightgray"
@@ -400,16 +444,21 @@ impl Variable {
 
             dot_content.push_str(&format!(
                 "  node{} [label=\"{}\", fillcolor=\"{}\"];\n",
-                var.id, label, color
+                var.id(), label, color
             ));
 
-            // Ajouter les arêtes pour les entrées
-            if let Some(ref node) = var.grad_fn {
-                for input in &node.inputs {
-                    if edges.insert((input.id, var.id)) {
-                        dot_content.push_str(&format!("  node{} -> node{};\n", input.id, var.id));
+            // Ajouter les arêtes pour les entrées avec weak references
+            if let Some(ref node) = data.grad_fn {
+                for weak_input in &node.inputs {
+                    if let Some(input_data) = weak_input.upgrade() {
+                        let input_var_data = input_data.read().unwrap();
+                        let input_id = input_var_data.id;
+                        if edges.insert((input_id, var.id())) {
+                            dot_content.push_str(&format!("  node{} -> node{};\n", input_id, var.id()));
+                        }
+                        // Note: On ne peut plus facilement traverser récursivement avec les weak refs
+                        // Il faudrait maintenir une map des variables pour la traversée complète
                     }
-                    build_graph(input, dot_content, visited, edges);
                 }
             }
         }
@@ -480,35 +529,35 @@ impl Variable {
             visited: &mut HashSet<usize>,
         ) {
             // Éviter les cycles
-            if !visited.insert(var.id) {
+            if !visited.insert(var.id()) {
                 let indent = "  ".repeat(depth);
-                result.push_str(&format!("{}Node {} (already visited)\n", indent, var.id));
+                result.push_str(&format!("{}Node {} (already visited)\n", indent, var.id()));
                 return;
             }
 
             let indent = "  ".repeat(depth);
 
-            if var.is_leaf {
+            if var.is_leaf() {
                 result.push_str(&format!(
                     "{}Node {} (Leaf, requires_grad={})\n",
-                    indent, var.id, var.requires_grad
+                    indent, var.id(), var.requires_grad()
                 ));
-            } else if let Some(ref node) = var.grad_fn {
-                result.push_str(&format!(
-                    "{}Node {} (Op: {}, requires_grad={})\n",
-                    indent, var.id, node.operation, var.requires_grad
-                ));
-
-                // Afficher les nœuds d'entrée
-                for (i, input) in node.inputs.iter().enumerate() {
-                    result.push_str(&format!("{}  Input {}:\n", indent, i));
-                    print_node(input, depth + 2, result, visited);
-                }
             } else {
-                result.push_str(&format!(
-                    "{}Node {} (No grad_fn, requires_grad={})\n",
-                    indent, var.id, var.requires_grad
-                ));
+                let data = var.data.read().unwrap();
+                if let Some(ref node) = data.grad_fn {
+                    result.push_str(&format!(
+                        "{}Node {} (Op: {}, requires_grad={})\n",
+                        indent, var.id(), node.operation, var.requires_grad()
+                    ));
+
+                    // Afficher les nœuds d'entrée - Note: avec weak refs, on ne peut plus traverser facilement
+                    result.push_str(&format!("{}  [Inputs via weak references]\n", indent));
+                } else {
+                    result.push_str(&format!(
+                        "{}Node {} (No grad_fn, requires_grad={})\n",
+                        indent, var.id(), var.requires_grad()
+                    ));
+                }
             }
         }
 
