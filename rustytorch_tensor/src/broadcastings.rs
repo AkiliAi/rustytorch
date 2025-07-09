@@ -215,6 +215,15 @@ impl Tensor {
         )
     }
 
+    /// Puissance avec broadcasting
+    pub fn pow_broadcast(&self, other: &Self) -> Result<Self, TensorError> {
+        self.parallel_binary_op(
+            other,
+            |a, b| a.powf(b),
+            |a, b| a.powf(b),
+        )
+    }
+
     // matmul method moved to linalg.rs with optimized implementation
 
     /// Opération de réduction - sum

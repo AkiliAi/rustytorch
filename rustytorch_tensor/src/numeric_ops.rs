@@ -39,8 +39,8 @@ impl NumericOps for Tensor {
     }
 
     fn pow(self, exponent: Self) -> Result<Self::Output> {
-        // Stub implementation
-        Err(CoreError::invalid_op("pow", "not implemented yet"))
+        self.pow_broadcast(&exponent)
+            .map_err(|e| CoreError::invalid_op("pow", &e.to_string()))
     }
 
     fn rem(self, rhs: Self) -> Result<Self::Output> {
@@ -64,5 +64,9 @@ impl Tensor {
 
     pub fn div_ref(&self, rhs: &Self) -> std::result::Result<Self, TensorError> {
         self.div_broadcast(rhs)
+    }
+
+    pub fn pow_ref(&self, exponent: &Self) -> std::result::Result<Self, TensorError> {
+        self.pow_broadcast(exponent)
     }
 }
