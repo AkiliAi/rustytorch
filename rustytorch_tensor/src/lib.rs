@@ -14,7 +14,7 @@ pub use decompositions::Decompositions;
 // use std::simd::f32x8;
 use rayon::prelude::*;
 
-pub mod activations;
+
 pub mod broadcastings;
 pub mod decompositions;
 pub mod f16_support;
