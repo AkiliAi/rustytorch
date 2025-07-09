@@ -651,6 +651,7 @@ dependencies = [
 name = "rustytorch_autograd"
 version = "0.1.0"
 dependencies = [
+ "lazy_static",
  "rand 0.8.5",
  "rayon",
  "rustytorch_core",

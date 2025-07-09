@@ -171,7 +171,7 @@ pub fn run_f16_demo() {
         }
     );
     println!(
-        "  0.00001 → F16: {} ({})",
+        "  0.0.clone()0001 → F16: {} ({})",
         tiny.to_f32(),
         if tiny == f16::from_f32(0.0) {
             "underflow to 0"
