@@ -562,50 +562,56 @@ impl Tensor {
         self.apply_unary_op(|x| x * deg_to_rad_f32, |x| x * deg_to_rad_f64)
     }
 
-    // /// Calcule le gradient de la fonction exp
-    // pub fn exp_backward(&self, grad_output: &Self) -> Result<Self, TensorError> {
-    //     // Le gradient de exp(x) est exp(x) * grad_output
-    //     let exp_result = self.exp()?;
-    //     exp_result.mul(grad_output)
-    // }
-    //
-    // /// Calcule le gradient de la fonction log
-    // pub fn log_backward(&self, grad_output: &Self) -> Result<Self, TensorError> {
-    //     // Le gradient de log(x) est (1/x) * grad_output
-    //     let one = Self::ones(vec![1], Some(self.options.clone()))?;
-    //     let recip = one.div(self)?;
-    //     recip.mul(grad_output)
-    // }
-    //
-    // /// Calcule le gradient de la fonction sin
-    // pub fn sin_backward(&self, grad_output: &Self) -> Result<Self, TensorError> {
-    //     // Le gradient de sin(x) est cos(x) * grad_output
-    //     let cos_result = self.cos()?;
-    //     cos_result.mul(grad_output)
-    // }
-    //
-    // /// Calcule le gradient de la fonction cos
-    // pub fn cos_backward(&self, grad_output: &Self) -> Result<Self, TensorError> {
-    //     // Le gradient de cos(x) est -sin(x) * grad_output
-    //     let sin_result = self.sin()?;
-    //     let neg_sin = sin_result.neg()?;
-    //     neg_sin.mul(grad_output)
-    // }
-    //
-    // // Calcule le gradient de la fonction tan
-    // pub fn tan_backward(&self, grad_output: &Self) -> Result<Self, TensorError> {
-    //     // Le gradient de tan(x) est (1 + tan^2(x)) * grad_output
-    //     let tan_result = self.tan()?;
-    //     let result =  tan_result.clone();
-    //     let tan_squared = tan_result.mul(result)?;
-    //     let one = Self::ones(self.shape().to_vec(), Some(self.options.clone()))?;
-    //     let one_plus_tan_squared = one.add(&tan_squared)?;
-    //     one_plus_tan_squared.mul(grad_output)
-    // }
 
     /// Calcule l'opposé de chaque élément du tenseur
     pub fn neg(&self) -> Result<Self, TensorError> {
         self.apply_unary_op(|x| -x, |x| -x)
+    }
+    
+    /// Multiplie le tenseur par un scalaire
+    pub fn mul_scalar(&self, scalar: f64) -> Result<Self, TensorError> {
+        self.apply_unary_op(
+            |x| x * scalar as f32,
+            |x| x * scalar,
+        )
+    }
+    
+    /// Divise le tenseur par un scalaire
+    pub fn div_scalar(&self, scalar: f64) -> Result<Self, TensorError> {
+        if scalar == 0.0 {
+            return Err(TensorError::new(
+                TensorErrorType::InvalidOperation,
+                "Division by zero"
+            ));
+        }
+        self.apply_unary_op(
+            |x| x / scalar as f32,
+            |x| x / scalar,
+        )
+    }
+    
+    /// Ajoute un scalaire au tenseur
+    pub fn add_scalar(&self, scalar: f64) -> Result<Self, TensorError> {
+        self.apply_unary_op(
+            |x| x + scalar as f32,
+            |x| x + scalar,
+        )
+    }
+    
+    /// Soustrait un scalaire du tenseur
+    pub fn sub_scalar(&self, scalar: f64) -> Result<Self, TensorError> {
+        self.apply_unary_op(
+            |x| x - scalar as f32,
+            |x| x - scalar,
+        )
+    }
+    
+    /// Calcule le signe de chaque élément (-1, 0, ou 1)
+    pub fn sign(&self) -> Result<Self, TensorError> {
+        self.apply_unary_op(
+            |x| if x > 0.0 { 1.0 } else if x < 0.0 { -1.0 } else { 0.0 },
+            |x| if x > 0.0 { 1.0 } else if x < 0.0 { -1.0 } else { 0.0 },
+        )
     }
 }
 
@@ -627,7 +633,7 @@ mod tests {
             StorageType::F64(data) => {
                 assert_eq!(data, &[0.0, 0.0, 0.0, 1.0, 2.0]);
             }
-            _ => panic!("Unexpected storage type"),
+            _ => panic!("Unexpeced storage type"),
         }
 
         // Test sigmoid
