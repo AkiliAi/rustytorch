@@ -1,7 +1,7 @@
 //rustytorch_autograd/src/operations.rs
 
 use crate::{Operation, Variable, GRAD_ENABLED};
-use rustytorch_core::{NumericOps, Reduction};
+use rustytorch_core::{NumericOps, Reduction, Reshapable};
 use rustytorch_tensor::Tensor;
 use std::collections::HashSet;
 impl Variable {
@@ -565,5 +565,180 @@ impl Variable {
         print_node(self, 0, &mut result, &mut visited);
 
         result
+    }
+    
+    /// Calcule la valeur absolue
+    pub fn abs(&self) -> Self {
+        let result_tensor = self.tensor().abs().expect("Failed to compute abs");
+        
+        if !self.requires_grad() {
+            return Self::from_tensor(result_tensor, false);
+        }
+        
+        let self_clone = self.clone();
+        let grad_fn = Box::new(move |grad_output: &Tensor| {
+            // d/dx |x| = sign(x)
+            let sign = self_clone.tensor().sign().unwrap();
+            let grad = grad_output.clone().mul(sign).unwrap();
+            vec![grad]
+        }) as Box<dyn Fn(&Tensor) -> Vec<Tensor> + Send + Sync>;
+        
+        Self::from_operation(
+            result_tensor,
+            Operation::None,
+            vec![self.clone()],
+            Some(grad_fn),
+        )
+    }
+    
+    /// Calcule le négatif (opposé)
+    pub fn neg(&self) -> Self {
+        let result_tensor = self.tensor().neg().expect("Failed to compute neg");
+        
+        if !self.requires_grad() {
+            return Self::from_tensor(result_tensor, false);
+        }
+        
+        let grad_fn = Box::new(move |grad_output: &Tensor| {
+            // d/dx (-x) = -1
+            let grad = grad_output.neg().unwrap();
+            vec![grad]
+        }) as Box<dyn Fn(&Tensor) -> Vec<Tensor> + Send + Sync>;
+        
+        Self::from_operation(
+            result_tensor,
+            Operation::None,
+            vec![self.clone()],
+            Some(grad_fn),
+        )
+    }
+    
+    /// Calcule la racine carrée
+    pub fn sqrt(&self) -> Self {
+        let result_tensor = self.tensor().sqrt().expect("Failed to compute sqrt");
+        
+        if !self.requires_grad() {
+            return Self::from_tensor(result_tensor, false);
+        }
+        
+        let result_clone = result_tensor.clone();
+        let grad_fn = Box::new(move |grad_output: &Tensor| {
+            // d/dx sqrt(x) = 1 / (2 * sqrt(x))
+            let two = Tensor::full(result_clone.shape().to_vec(), 2.0, result_clone.dtype()).unwrap();
+            let denominator = two.mul(result_clone.clone()).unwrap();
+            let grad = grad_output.clone().div(denominator).unwrap();
+            vec![grad]
+        }) as Box<dyn Fn(&Tensor) -> Vec<Tensor> + Send + Sync>;
+        
+        Self::from_operation(
+            result_tensor,
+            Operation::None,
+            vec![self.clone()],
+            Some(grad_fn),
+        )
+    }
+    
+    /// Redimensionne le tenseur
+    pub fn reshape(&self, shape: &[usize]) -> Self {
+        let result_tensor = self.tensor().reshape(shape).expect("Failed to reshape");
+        
+        if !self.requires_grad() {
+            return Self::from_tensor(result_tensor, false);
+        }
+        
+        let original_shape = self.shape();
+        let grad_fn = Box::new(move |grad_output: &Tensor| {
+            // Le gradient doit être remodelé vers la forme originale
+            let grad = grad_output.reshape(&original_shape).unwrap();
+            vec![grad]
+        }) as Box<dyn Fn(&Tensor) -> Vec<Tensor> + Send + Sync>;
+        
+        Self::from_operation(
+            result_tensor,
+            Operation::None,
+            vec![self.clone()],
+            Some(grad_fn),
+        )
+    }
+    
+    /// Calcule la moyenne le long d'une dimension spécifique
+    pub fn mean_dim(&self, dim: usize, keep_dim: bool) -> Self {
+        let result_tensor = self.tensor().mean_dim(Some(dim)).expect("Failed to compute mean");
+        
+        if !self.requires_grad() {
+            return Self::from_tensor(result_tensor, false);
+        }
+        
+        let input_shape = self.shape();
+        let dim_size = input_shape[dim] as f64;
+        
+        let grad_fn = Box::new(move |grad_output: &Tensor| {
+            // Le gradient est divisé par la taille de la dimension et broadcast
+            let scale = 1.0 / dim_size;
+            let scaled_grad = grad_output.mul_scalar(scale).unwrap();
+            
+            // Si keep_dim est false, on doit unsqueeze avant de broadcaster
+            let grad = if keep_dim {
+                scaled_grad.broadcast_to(&input_shape).unwrap()
+            } else {
+                let mut unsqueezed_shape = grad_output.shape().to_vec();
+                unsqueezed_shape.insert(dim, 1);
+                scaled_grad.reshape(&unsqueezed_shape).unwrap()
+                    .broadcast_to(&input_shape).unwrap()
+            };
+            
+            vec![grad]
+        }) as Box<dyn Fn(&Tensor) -> Vec<Tensor> + Send + Sync>;
+        
+        Self::from_operation(
+            result_tensor,
+            Operation::Mean,
+            vec![self.clone()],
+            Some(grad_fn),
+        )
+    }
+    
+    /// Calcule la somme le long d'une dimension spécifique
+    pub fn sum_dim(&self, dim: usize, keep_dim: bool) -> Self {
+        let result_tensor = self.tensor().sum_dim(Some(dim)).expect("Failed to compute sum");
+        
+        if !self.requires_grad() {
+            return Self::from_tensor(result_tensor, false);
+        }
+        
+        let input_shape = self.shape();
+        
+        let grad_fn = Box::new(move |grad_output: &Tensor| {
+            // Le gradient est simplement broadcast à la forme d'entrée
+            let grad = if keep_dim {
+                grad_output.broadcast_to(&input_shape).unwrap()
+            } else {
+                let mut unsqueezed_shape = grad_output.shape().to_vec();
+                unsqueezed_shape.insert(dim, 1);
+                grad_output.reshape(&unsqueezed_shape).unwrap()
+                    .broadcast_to(&input_shape).unwrap()
+            };
+            
+            vec![grad]
+        }) as Box<dyn Fn(&Tensor) -> Vec<Tensor> + Send + Sync>;
+        
+        Self::from_operation(
+            result_tensor,
+            Operation::Sum,
+            vec![self.clone()],
+            Some(grad_fn),
+        )
+    }
+    
+    /// Multiplies by a scalar
+    pub fn mul_scalar(&self, scalar: f64) -> Self {
+        let result_tensor = self.tensor().mul_scalar(scalar).expect("Failed to multiply by scalar");
+        Self::from_tensor(result_tensor, self.requires_grad())
+    }
+    
+    /// Adds a scalar
+    pub fn add_scalar(&self, scalar: f64) -> Self {
+        let result_tensor = self.tensor().add_scalar(scalar).expect("Failed to add scalar");
+        Self::from_tensor(result_tensor, self.requires_grad())
     }
 }
