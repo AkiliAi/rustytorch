@@ -492,3 +492,23 @@ impl Comparable for Tensor {
             .map_err(|e| CoreError::invalid_op("any", &e.to_string()))
     }
 }
+
+impl Tensor {
+    /// Retourne le minimum élément par élément entre deux tenseurs
+    pub fn minimum(&self, other: &Self) -> Result<Self, TensorError> {
+        self.apply_binary_op(
+            other,
+            |a, b| if a < b { a } else { b },
+            |a, b| if a < b { a } else { b },
+        )
+    }
+    
+    /// Retourne le maximum élément par élément entre deux tenseurs
+    pub fn maximum(&self, other: &Self) -> Result<Self, TensorError> {
+        self.apply_binary_op(
+            other,
+            |a, b| if a > b { a } else { b },
+            |a, b| if a > b { a } else { b },
+        )
+    }
+}
