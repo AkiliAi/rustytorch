@@ -168,6 +168,18 @@ impl Tensor {
         let random_data: Vec<f64> = (0..total_size).map(|_| rng.gen()).collect();
         Self::from_data(&random_data, shape, options)
     }
+    
+    /// Creer un tenseur rempli d'une valeur spécifique
+    pub fn full<T>(shape: Vec<usize>, value: T, dtype: DType) -> Result<Self> 
+    where
+        T: Into<f64> + Copy,
+    {
+        let total_size: usize = shape.iter().product();
+        let value_f64 = value.into();
+        let data = vec![value_f64; total_size];
+        let options = TensorOptions::new().dtype(dtype);
+        Ok(Self::from_data(&data, shape, Some(options)))
+    }
 
     /// renvoie la forme du tenseur (shape)
     pub fn shape(&self) -> &[usize] {

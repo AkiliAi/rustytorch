@@ -3,6 +3,10 @@
 pub mod cycle_detection;
 pub mod graph_manager;
 pub mod operations;
+pub mod functional;
+pub mod performance_optimizations;
+pub mod optimized_backward;
+pub mod anomaly_detection;
 
 use rustytorch_core::{NumericOps, Reduction, Reshapable};
 use rustytorch_tensor::Tensor;
@@ -1481,3 +1485,30 @@ mod higher_order_tests {
         }
     }
 }
+
+// ========= EXPORTS PUBLICS POUR LES NOUVELLES FONCTIONNALITÉS =========
+
+// Performance optimizations
+pub use performance_optimizations::{
+    PerformanceConfig, GradientCache, BufferPool, OptimizedGradientAccumulator,
+    OperationFuser, FusablePattern, CheckpointManager, PerformanceStats,
+    set_performance_config, get_performance_config, get_performance_stats,
+    with_gradient_cache, with_buffer_pool
+};
+
+// Optimized backward pass
+pub use optimized_backward::{
+    BackwardPassProfiler, BackwardPassReport,
+    enable_backward_profiling, get_backward_profile
+};
+
+// Anomaly detection
+pub use anomaly_detection::{
+    AnomalyConfig, AnomalyType, AnomalyInfo, AnomalyDetector, AnomalyReport,
+    GradientTrace, GradientFlowAnalyzer, GradientFlowReport,
+    enable_anomaly_detection, disable_anomaly_detection,
+    check_tensor_globally, get_global_anomaly_report, clear_global_anomalies
+};
+
+// Functional API
+pub use functional::F;
