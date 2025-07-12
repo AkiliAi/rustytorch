@@ -13,14 +13,18 @@ repository.workspace = true
 [dependencies]
 # Dépendances externes
 rand.workspace = true
+rand_distr.workspace = true
 rayon.workspace = true
 ndarray.workspace = true
 thiserror.workspace = true
 log.workspace = true
 num-traits.workspace = true
+num-complex.workspace = true
 bytemuck.workspace = true
+half.workspace = true
 serde.workspace = true
 cfg-if.workspace = true
+lazy_static.workspace = true
 
 # Dépendance interne vers rustytorch_core
 rustytorch_core = { path = "../rustytorch_core" }
@@ -45,7 +49,11 @@ bumpalo = "3.17.0"
 ##cuda-sys = { version = "0.2", optional = true }
 ##intel-mkl-src = { version = "0.8", optional = true }
 #
-##Dépendances de développement uniquement
-#[dev-dependencies]
-#criterion.workspace = true
-#proptest.workspace = true
+# Dépendances de développement uniquement
+[dev-dependencies]
+criterion.workspace = true
+proptest.workspace = true
+
+[[bench]]
+name = "tensor_benchmarks"
+harness = false

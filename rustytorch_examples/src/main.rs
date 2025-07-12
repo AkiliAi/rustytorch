@@ -1,195 +1,250 @@
 //rustytorch_examples/src/main.rs
 
-use rustytorch_autograd::{no_grad, Operation, Variable};
-use rustytorch_core::{Reshapable,Reduction};
-use rustytorch_tensor::{Tensor};
+mod advanced_linalg;
+mod autograd_basic_demo;
+mod decompositions_demo;
+mod device_demo;
+mod f16_demo;
+mod higher_order_gradients_demo;
+mod initializers_demo;
+mod memory_pool_demo;
+mod neural_network_demo;
+mod new_reductions;
+mod optimization_demo;
+mod padding_demo;
+mod pow_test;
+mod random_generators_demo;
 
-
-
+use rustytorch_autograd::{enable_grad, Variable};
+use rustytorch_core::{Reduction, Reshapable};
+use rustytorch_tensor::Tensor;
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
-    // println!("RustyTorch - Exemple de base de tenseurs");
-    //
-    // // Créer un tenseur à partir de données
-    // let data = vec![1.0, 2.0, 3.0, 4.0, 5.0, 6.0];
-    // let tensor = Tensor::from_data(&data, vec![2, 3], None);
-    // println!("Tenseur initial - shape: {:?}", tensor.shape());
-    //
-    // // Créer des tenseurs avec des valeurs prédéfinies
-    // let zeros = Tensor::zeros(vec![2, 2], None);
-    // println!("Tenseur de zéros - shape: {:?}", zeros.shape());
-    //
-    // let ones = Tensor::ones(vec![3, 2], None);
-    // println!("Tenseur de uns - shape: {:?}", ones.shape());
-    //
-    // // Créer un tenseur avec des valeurs aléatoires
-    // let random = Tensor::rand(vec![2, 3], None);
-    // println!("Tenseur aléatoire - shape: {:?}", random.shape());
-    //
-    // // Opérations de transformation
-    // let reshaped = tensor.reshape(&[3, 2]);
-    // println!("Tenseur après reshape - shape: {:?}", reshaped.shape());
-    //
-    // let flattened = tensor.flatten();
-    // println!("Tenseur aplati - shape: {:?}", flattened.shape());
-    //
-    // let transposed = tensor.transpose(0, 1);
-    // println!("Tenseur transposé - shape: {:?}", transposed.shape());
+    println!("🚀 RustyTorch - Démonstrations Complètes\n");
+    
+    // Activer le calcul de gradient par défaut
+    let _grad_guard = enable_grad();
+    
+    // === NOUVELLES DÉMONSTRATIONS AUTOGRAD ===
+    println!("🧠 DÉMONSTRATIONS AUTOGRAD - NOUVELLES FONCTIONNALITÉS\n");
+    
+    // Démonstration autograd de base avec la nouvelle API
+    autograd_basic_demo::run_autograd_basic_demo();
+    
+    // Démonstration gradients d'ordre supérieur
+    higher_order_gradients_demo::run_higher_order_gradients_demo();
+    
+    // Démonstration réseau de neurones mini
+    neural_network_demo::run_neural_network_demo();
+    
+    // Démonstration algorithmes d'optimisation
+    optimization_demo::run_optimization_demo();
+    
+    // === DEBUG: Test gradient simple ===
+    println!("=== DEBUG: Test gradient simple ===");
+    debug_simple_gradients();
+    
+    // === Exemple rapide de la nouvelle API ===
+    println!("=== Exemple Rapide: Nouvelle API Autograd ===");
+    quick_autograd_example();
+    
+    // === DÉMONSTRATIONS DES AUTRES MODULES ===
+    println!("\n📊 DÉMONSTRATIONS DES AUTRES MODULES\n");
 
-    println!("RustyTorch - Exemple de différentiation automatique\n");
+    // Lancer la démonstration des nouvelles réductions
+    println!("{}", "=".repeat(60));
+    new_reductions::run_new_reductions_demo();
 
-    // ====== Exemple 1: Opérations simples avec différentiation ======
-    println!("====== Exemple 1: Opérations simples avec différentiation ======");
+    // Lancer la démonstration du padding et cropping
+    println!("{}", "=".repeat(60));
+    padding_demo::run_padding_demo();
 
-    // Créer des variables avec suivi de gradient
-    let tensor_a = Tensor::from_data(&[2.0], vec![1], None);
-    let tensor_b = Tensor::from_data(&[3.0], vec![1], None);
+    // Lancer la démonstration d'algèbre linéaire avancée
+    println!("{}", "=".repeat(60));
+    advanced_linalg::run_advanced_linalg_demo();
 
-    let mut var_a = Variable::from_tensor(tensor_a, true);
-    let mut var_b = Variable::from_tensor(tensor_b, true);
+    // Lancer la démonstration des générateurs aléatoires
+    println!("{}", "=".repeat(60));
+    random_generators_demo::run_random_generators_demo();
 
-    // Effectuer des opérations: c = a * b
-    let mut var_c = var_a.mul(&var_b);
+    // Lancer la démonstration des initialiseurs
+    println!("{}", "=".repeat(60));
+    initializers_demo::run_initializers_demo();
 
-    println!("a = 2.0, b = 3.0");
-    println!("c = a * b = {}", extract_scalar(&var_c.tensor));
+    // Lancer la démonstration des décompositions
+    println!("{}", "=".repeat(60));
+    decompositions_demo::run_decompositions_demo();
 
-    // Calculer les gradients
-    var_c.backward();
+    // Lancer la démonstration des devices
+    println!("{}", "=".repeat(60));
+    device_demo::run_device_demo();
 
-    // Afficher les gradients
-    println!("dc/da = {}", extract_scalar(&var_a.grad().unwrap_or_else(|| panic!("Gradient for a is None"))));
-    println!("dc/db = {}", extract_scalar(&var_b.grad().unwrap_or_else(|| panic!("Gradient for b is None"))));
+    // Lancer la démonstration F16
+    println!("{}", "=".repeat(60));
+    f16_demo::run_f16_demo();
 
-    // ====== Exemple 2: Expression plus complexe ======
-    println!("\nExemple 2: Expression plus complexe");
+    // Lancer la démonstration Memory Pool
+    println!("{}", "=".repeat(60));
+    memory_pool_demo::run_memory_pool_demo();
 
-    // Fonction: f(x, y) = (x + 2*y) * (x^2)
-    let tensor_x = Tensor::from_data(&[3.0], vec![1], None);
-    let tensor_y = Tensor::from_data(&[4.0], vec![1], None);
-
-    let mut var_x = Variable::from_tensor(tensor_x, true);
-    let mut var_y = Variable::from_tensor(tensor_y, true);
-
-    // Calculer 2*y
-    let two = Variable::from_tensor(Tensor::from_data(&[2.0], vec![1], None), false);
-    let two_y = two.mul(&var_y);
-
-    // Calculer x + 2*y
-    let x_plus_2y = var_x.add(&two_y);
-
-    // Calculer x^2
-    let x_squared = var_x.mul(&var_x);
-
-    // Calculer le résultat final: (x + 2*y) * (x^2)
-    let mut result = x_plus_2y.mul(&x_squared);
-
-    println!("x = 3.0, y = 4.0");
-    println!("f(x, y) = (x + 2*y) * (x^2) = {}", extract_scalar(&result.tensor));
-
-    // Propager les gradients
-    result.backward();
-
-    // Afficher les gradients
-    println!("df/dx = {}", extract_scalar(&var_x.grad().unwrap_or_else(|| panic!("Gradient for x is None"))));
-    println!("df/dy = {}", extract_scalar(&var_y.grad().unwrap_or_else(|| panic!("Gradient for y is None"))));
-
-    // ====== Exemple 3: Utilisation de no_grad ======
-    println!("\nExemple 3: Utilisation de no_grad");
-
-    {
-        let _guard = no_grad();
-
-        // Ces opérations ne seront pas suivies pour le calcul du gradient
-        let var_p = Variable::from_tensor(Tensor::from_data(&[5.0], vec![1], None), true);
-        let var_q = Variable::from_tensor(Tensor::from_data(&[6.0], vec![1], None), true);
-
-        let var_r = var_p.add(&var_q);
-
-        println!("p = 5.0, q = 6.0");
-        println!("r = p + q = {}", extract_scalar(&var_r.tensor));
-        println!("requires_grad = {}", var_r.requires_grad);
-    }
-
-    // ====== Exemple 4: Multiplication matricielle ======
-    println!("\nExemple 4: Multiplication matricielle et rétropropagation");
-
-    // Créer deux matrices
-    let tensor_a = Tensor::from_data(&[1.0, 2.0, 3.0, 4.0], vec![2, 2], None);
-    let tensor_b = Tensor::from_data(&[5.0, 6.0, 7.0, 8.0], vec![2, 2], None);
-
-    let mut var_a = Variable::from_tensor(tensor_a, true);
-    let mut var_b = Variable::from_tensor(tensor_b, true);
-
-    // Effectuer la multiplication matricielle
-    let mut var_c = var_a.matmul(&var_b);
-
-    println!("Matrice A = [[1, 2], [3, 4]]");
-    println!("Matrice B = [[5, 6], [7, 8]]");
-    println!("C = A @ B = matrice 2x2");
-
-    // Pour simplifier, on n'affiche pas la matrice complète ici
-
-    // Utiliser la fonction sum ou la méthode de Variable selon ce qui est disponible
-    let mut sum_c = var_c.sum();
-    sum_c.backward();
-
-    println!("dL/dA et dL/dB calculés (gradients des matrices)");
-
-    println!("\nExemple de différentiation automatique terminé!");
+    println!("\n🎉 Toutes les démonstrations terminées avec succès!");
+    println!("📈 Statistiques du graphe: {:?}", Variable::graph_stats());
 
     Ok(())
 }
 
-
-/// Fonction utilitaire pour extraire un scalaire d'un tenseur
-fn extract_scalar(tensor: &Tensor) -> f64 {
-    let storage = tensor.storage();
-    match storage {
-        rustytorch_tensor::storage::StorageType::F32(data) => {
-            if data.len() >= 1 {
-                data[0] as f64
-            } else {
-                std::f64::NAN
-            }
-        },
-        rustytorch_tensor::storage::StorageType::F64(data) => {
-            if data.len() >= 1 {
-                data[0]
-            } else {
-                std::f64::NAN
-            }
-        },
-        _ => std::f64::NAN,
+/// Exemple rapide montrant les nouvelles fonctionnalités d'autograd
+fn quick_autograd_example() {
+    println!("   Calcul: f(x,y) = x²y + sin(xy)");
+    
+    let x = Variable::variable_with_grad(&[1.5], vec![1]);
+    let y = Variable::variable_with_grad(&[2.0], vec![1]);
+    
+    // f(x,y) = x²y + sin(xy)
+    let x_squared = x.mul(&x);
+    let x2y = x_squared.mul(&y);
+    let xy = x.mul(&y);
+    let sin_xy = xy.sin();
+    let f = x2y.add(&sin_xy);
+    
+    println!("   x = 1.5, y = 2.0");
+    println!("   f(1.5, 2.0) = {:.4}", f.tensor().storage().to_vec_f64()[0]);
+    
+    // Gradients de premier ordre
+    let grads = Variable::compute_grad(&[f.clone()], &[x.clone(), y.clone()], None, false, true).unwrap();
+    if let (Some(dx), Some(dy)) = (&grads[0], &grads[1]) {
+        println!("   ∂f/∂x = {:.4}", dx.tensor().storage().to_vec_f64()[0]);
+        println!("   ∂f/∂y = {:.4}", dy.tensor().storage().to_vec_f64()[0]);
     }
+    
+    // Hessienne (gradients de second ordre)
+    match f.hessian(&[x.clone(), y.clone()]) {
+        Ok(hessian) => {
+            if let (Some(h_xx), Some(h_xy), Some(h_yx), Some(h_yy)) = 
+                (&hessian[0][0], &hessian[0][1], &hessian[1][0], &hessian[1][1]) {
+                println!("   Hessienne:");
+                println!("   [[{:.3}, {:.3}],", 
+                         h_xx.tensor().storage().to_vec_f64()[0],
+                         h_xy.tensor().storage().to_vec_f64()[0]);
+                println!("    [{:.3}, {:.3}]]", 
+                         h_yx.tensor().storage().to_vec_f64()[0],
+                         h_yy.tensor().storage().to_vec_f64()[0]);
+            }
+        }
+        Err(_) => println!("   Erreur calcul Hessienne"),
+    }
+    
+    println!();
 }
 
-// Fonction pour sommer un tenseur et créer une Variable
-fn wrap_sum_tensor(var: &Variable) -> Variable {
-    // Utiliser la méthode sum() de Tensor via le trait Reduction
-    let result_tensor = match var.tensor.sum() {
-        Ok(t) => t,
-        Err(e) => panic!("Error computing sum: {}", e),
-    };
-
-    // Si le calcul du gradient est désactivé, retourner un résultat simple
-    if !var.requires_grad {
-        return Variable::from_tensor(result_tensor, false);
+/// Debug fonction pour tester les gradients de base
+fn debug_simple_gradients() {
+    println!("Testing basic gradient functionality...");
+    
+    // Test très simple: f(x) = x + 2
+    let x = Variable::variable_with_grad(&[3.0], vec![1]);
+    let constant = Variable::variable_with_grad(&[2.0], vec![1]);
+    
+    let result = x.add(&constant);
+    
+    println!("x = {:?}", x.tensor().storage().to_vec_f64());
+    println!("constant = {:?}", constant.tensor().storage().to_vec_f64());
+    println!("result = {:?}", result.tensor().storage().to_vec_f64());
+    
+    // Calculer le gradient analytique
+    match Variable::compute_grad(&[result.clone()], &[x.clone()], None, false, false) {
+        Ok(analytical_grads) => {
+            if let Some(analytical_grad) = &analytical_grads[0] {
+                let analytical_value = analytical_grad.tensor().storage().to_vec_f64()[0];
+                println!("Gradient analytique: {:.6}", analytical_value);
+                
+                if (analytical_value - 1.0).abs() < 1e-6 {
+                    println!("✅ Test gradient addition PASSED");
+                } else {
+                    println!("❌ Test gradient addition FAILED - expected 1.0, got {}", analytical_value);
+                }
+            } else {
+                println!("❌ No analytical gradient computed");
+            }
+        },
+        Err(e) => {
+            println!("❌ Erreur calcul gradient: {}", e);
+        }
     }
-
-    // Pour la rétropropagation, le gradient de sum par rapport à chaque élément est 1
-    let var_clone = var.clone();
-    let grad_fn = Box::new(move |_grad_output: &Tensor| {
-        // Pour sum(), le gradient par rapport à chaque élément de l'entrée est 1
-        let ones = Tensor::ones(var_clone.tensor.shape().to_vec(), None);
-        vec![ones]
-    }) as Box<dyn Fn(&Tensor) -> Vec<Tensor> + Send + Sync>;
-
-    // Créer la variable résultante
-    Variable::from_operation(
-        result_tensor,
-        Operation::Sum, // Utiliser l'opération Sum si disponible
-        vec![var.clone()],
-        Some(grad_fn),
-    )
+    
+    // Test de Hessienne simple
+    println!("\nTesting second-order gradients...");
+    let x = Variable::variable_with_grad(&[2.0], vec![1]);
+    let y = x.mul(&x).mul(&x); // x³
+    
+    println!("x = {:?}", x.tensor().storage().to_vec_f64());
+    println!("y = x³ = {:?}", y.tensor().storage().to_vec_f64());
+    
+    // First, let's test if first-order gradients work with create_graph=true
+    println!("Testing first-order gradients with create_graph=true...");
+    match Variable::compute_grad(&[y.clone()], &[x.clone()], None, true, true) {
+        Ok(first_grads) => {
+            if let Some(first_grad) = &first_grads[0] {
+                println!("First-order gradient computed: {:.6}", first_grad.tensor().storage().to_vec_f64()[0]);
+                println!("First-order gradient requires_grad: {}", first_grad.requires_grad());
+                println!("First-order gradient is_leaf: {}", first_grad.is_leaf());
+                println!("First-order gradient has grad_fn: {}", first_grad.grad_fn());
+                
+                // Now try second-order  
+                println!("Computing second-order from first gradient...");
+                match Variable::compute_grad(&[first_grad.clone()], &[x.clone()], None, false, false) {
+                    Ok(second_grads) => {
+                        if let Some(second_grad) = &second_grads[0] {
+                            println!("✅ Second-order gradient: {:.6}", second_grad.tensor().storage().to_vec_f64()[0]);
+                        } else {
+                            println!("❌ Second-order gradient is None");
+                        }
+                    },
+                    Err(e) => {
+                        println!("❌ Error computing second-order gradient: {}", e);
+                    }
+                }
+            } else {
+                println!("❌ First-order gradient is None");
+            }
+        },
+        Err(e) => {
+            println!("❌ Error computing first-order gradient: {}", e);
+        }
+    }
+    
+    match y.hessian(&[x.clone()]) {
+        Ok(hessian) => {
+            println!("Hessian calculation succeeded");
+            println!("Hessian dimensions: {}x{}", hessian.len(), if hessian.is_empty() { 0 } else { hessian[0].len() });
+            
+            if !hessian.is_empty() && !hessian[0].is_empty() {
+                if let Some(second_grad) = &hessian[0][0] {
+                    let second_grad_value = second_grad.tensor().storage().to_vec_f64()[0];
+                    println!("Second-order gradient: {:.6}", second_grad_value);
+                    println!("Expected for x³ at x=2: 12.0");
+                    
+                    if (second_grad_value - 12.0).abs() < 1e-3 {
+                        println!("✅ Test Hessian PASSED");
+                    } else {
+                        println!("❌ Test Hessian FAILED - expected 12.0, got {}", second_grad_value);
+                    }
+                } else {
+                    println!("❌ Second order gradient is None");
+                }
+            } else {
+                println!("❌ Hessian matrix is empty");
+            }
+        },
+        Err(e) => {
+            println!("❌ Erreur calcul Hessienne: {}", e);
+        }
+    }
+    
+    // Test pow operation
+    println!("🧪 Testing pow operation...");
+    pow_test::test_pow_operation();
+    
+    println!();
 }
+

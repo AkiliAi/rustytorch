@@ -18,6 +18,7 @@ rustytorch_nn = { path = "../rustytorch_nn" }
 rustytorch_optim = { path = "../rustytorch_optim" }
 rustytorch_text = { path = "../rustytorch_text" }
 rustytorch_utils = { path = "../rustytorch_utils" }
+half.workspace = true
 
 
 

@@ -13,6 +13,8 @@ jobs:
       - name: Set up Rust
         uses: actions/setup-rust@v1
         with:
-          rust-version: stable
+          toolchain: stable
+          profile: minimal
+          override: true
       - name: Build
         run: cargo build --verbose

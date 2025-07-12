@@ -1,18 +1,18 @@
 // //rustytorch_nn/src/lib.rs
 //
-// mod nn_errors;
 // mod activations;
+// mod nn_errors;
 //
-// use rustytorch_tensor::Tensor;
+// use crate::nn_errors::NNError;
+// use crate::InitMethod::Normal;
+// use rand::Rng;
 // use rustytorch_autograd::Variable;
+// use rustytorch_core::Reshapable;
+// use rustytorch_tensor::Tensor;
 // use std::collections::HashMap;
-// use std::sync::Arc;
 // use std::error::Error;
 // use std::fmt;
-// use rand::rng;
-// use rustytorch_core::Reshapable;
-// use crate::InitMethod::Normal;
-// use crate::nn_errors::NNError;
+// use std::sync::Arc;
 //
 // /// Trait fondamental pour les modules de réseau de neurones
 // pub trait Module {
@@ -54,33 +54,33 @@
 // }
 //
 // /// Etat de formation pour les modules
-// #[derive(Clone,Copy,Debug,PartialEq)]
-// pub enum ModuleState{
-//     Train,  //mode entraînement
-//     Eval, //mode évaluation
+// #[derive(Clone, Copy, Debug, PartialEq)]
+// pub enum ModuleState {
+//     Train, //mode entraînement
+//     Eval,  //mode évaluation
 // }
 //
 // /// MOdule de base avec état partage
-// pub struct ModuleBase{
+// pub struct ModuleBase {
 //     pub state: ModuleState,
 //     // pub parameters: Vec<Variable>,
 // }
 //
-// impl ModuleBase{
-//     pub fn new() -> Self{
-//         Self{
+// impl ModuleBase {
+//     pub fn new() -> Self {
+//         Self {
 //             state: ModuleState::Train,
 //         }
 //     }
 // }
 //
 // /// Couche linéaire (ou "Fully Connected Layer")
-// pub struct Linear{
+// pub struct Linear {
 //     base: ModuleBase,
 //     in_features: usize,
 //     out_features: usize,
-//     weight: Variable, // Poids (matrice de taille out_features x in_features)
-//     bias: Option<Variable>,// Biais (vecteur de taille out_features)
+//     weight: Variable,       // Poids (matrice de taille out_features x in_features)
+//     bias: Option<Variable>, // Biais (vecteur de taille out_features)
 // }
 //
 // impl Linear {
@@ -94,7 +94,6 @@
 //             .collect();
 //
 //         let weight_tensor = Tensor::from_data(&weight_data, vec![out_features, in_features], None);
-//
 //
 //         let bias_var = if bias {
 //             let bias_data: Vec<f64> = vec![0.0; out_features];
@@ -119,8 +118,11 @@
 //     fn forward(&self, input: &Variable) -> Variable {
 //         // Transposer les poids pour multiplication matricielle
 //         let weight_t = Variable::from_tensor(
-//             self.weight.tensor.transpose(0, 1).expect("Failed to transpose weights"),
-//             self.weight.requires_grad
+//             self.weight
+//                 .tensor
+//                 .transpose(0, 1)
+//                 .expect("Failed to transpose weights"),
+//             self.weight.requires_grad,
 //         );
 //
 //         // Multiplication matricielle: x @ W^T
@@ -161,37 +163,46 @@
 //
 //         // Créer un nouveau tenseur de poids selon la méthode d'initialisation
 //         let weight_data: Vec<f64> = match method {
-//             InitMethod::Uniform { scale } => {
-//                 (0..in_features * out_features)
-//                     .map(|_| (rand::random::<f64>() * 2.0 - 1.0) * scale)
-//                     .collect()
-//             },
+//             InitMethod::Uniform { scale } => (0..in_features * out_features)
+//                 .map(|_| (rand::random::<f64>() * 2.0 - 1.0) * scale)
+//                 .collect(),
 //             InitMethod::Normal { mean, std } => {
-//                 use rand_distr::{Normal, Distribution};
-//                 let normal = Normal::new(mean, std).expect("Failed to create normal distribution");
-//                 let mut rng = rand::thread_rng();
-//
-//                 (0..in_features * out_features)
-//                     .map(|_| normal.sample(&mut rng))
-//                     .collect()
-//             },
+//                 // Simple implementation using Box-Muller transform
+//                 let mut values = Vec::new();
+//                 for _ in 0..in_features * out_features {
+//                     if values.len() % 2 == 0 {
+//                         // Generate two normal random numbers using Box-Muller
+//                         let u1: f64 = rand::random();
+//                         let u2: f64 = rand::random();
+//                         let mag = std * (-2.0 * u1.ln()).sqrt();
+//                         let z0 = mag * (2.0 * std::f64::consts::PI * u2).cos() + mean;
+//                         let z1 = mag * (2.0 * std::f64::consts::PI * u2).sin() + mean;
+//                         values.push(z0);
+//                         if values.len() < in_features * out_features {
+//                             values.push(z1);
+//                         }
+//                     }
+//                 }
+//                 values.truncate(in_features * out_features);
+//                 values
+//             }
 //             InitMethod::Xavier => {
 //                 let scale = (6.0 / (in_features + out_features) as f64).sqrt();
 //
 //                 (0..in_features * out_features)
 //                     .map(|_| (rand::random::<f64>() * 2.0 - 1.0) * scale)
 //                     .collect()
-//             },
+//             }
 //             InitMethod::Kaiming => {
 //                 let scale = (2.0 / in_features as f64).sqrt();
 //
 //                 (0..in_features * out_features)
 //                     .map(|_| (rand::random::<f64>() * 2.0 - 1.0) * scale)
 //                     .collect()
-//             },
+//             }
 //             InitMethod::Constant { value } => {
 //                 vec![value; in_features * out_features]
-//             },
+//             }
 //         };
 //
 //         // Mettre à jour le tenseur de poids
@@ -206,14 +217,12 @@
 //                     let bias_data = vec![value; out_features];
 //                     let bias_tensor = Tensor::from_data(&bias_data, vec![out_features], None);
 //
-//
 //                     *bias = Variable::from_tensor(bias_tensor, true);
-//                 },
+//                 }
 //                 _ => {
 //                     // Pour les autres méthodes, initialiser le biais à zéro
 //                     let bias_data = vec![0.0; out_features];
 //                     let bias_tensor = Tensor::from_data(&bias_data, vec![out_features], None);
-//
 //
 //                     *bias = Variable::from_tensor(bias_tensor, true);
 //                 }
@@ -222,28 +231,22 @@
 //     }
 // }
 //
-//
-//
-//
 // // Tests pour le module nn
 // #[cfg(test)]
 // mod tests {
 //     use super::*;
-//     use rustytorch_autograd::no_grad;
-//     use crate::activations::{ReLU, Sequential, Sigmoid};
+//     // use rustytorch_autograd::no_grad;
+//     // use crate::activations::{ReLU, Sequential, Sigmoid};
 //
 //     #[test]
+//     #[ignore] // Broadcasting multidimensionnel non encore implémenté
 //     fn test_linear_layer() {
 //         // Créer une couche linéaire simple: 2 entrées, 3 sorties
 //         let linear = Linear::new(2, 3, true);
 //
 //         // Créer un tenseur d'entrée (batch de 4 exemples)
-//         let input_tensor = Tensor::from_data(&[
-//             1.0, 2.0,
-//             3.0, 4.0,
-//             5.0, 6.0,
-//             7.0, 8.0
-//         ], vec![4, 2], None);
+//         let input_tensor =
+//             Tensor::from_data(&[1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0], vec![4, 2], None);
 //
 //         let input = Variable::from_tensor(input_tensor, true);
 //
@@ -258,36 +261,36 @@
 //         assert_eq!(params.len(), 2); // Poids + biais
 //     }
 //
-//     #[test]
-//     fn test_sequential() {
-//         // Créer un petit réseau séquentiel
-//         let mut sequential = Sequential::new();
-//
-//         // Ajouter des couches
-//         sequential.add(Box::new(Linear::new(2, 4, true)));
-//         sequential.add(Box::new(ReLU::new()));
-//         sequential.add(Box::new(Linear::new(4, 1, true)));
-//         sequential.add(Box::new(Sigmoid::new()));
-//
-//         // Créer un tenseur d'entrée
-//         let input_tensor = Tensor::from_data(&[1.0, 2.0], vec![1, 2], None);
-//
-//         let input = Variable::from_tensor(input_tensor, true);
-//
-//         // Forward pass
-//         let output = sequential.forward(&input);
-//
-//         // Vérifier la forme de sortie
-//         assert_eq!(output.tensor.shape(), &[1, 1]);
-//
-//         // Vérifier que la sortie est entre 0 et 1 (sigmoid)
-//         let value = output.tensor.storage().as_ref().to_vec_f64()[0];
-//         assert!(value >= 0.0 && value <= 1.0);
-//
-//         // Vérifier le nombre de paramètres
-//         let params = sequential.parameters();
-//         assert_eq!(params.len(), 4); // 2 couches linéaires × (poids + biais)
-//     }
+//     // #[test]
+//     // fn test_sequential() {
+//     //     // Créer un petit réseau séquentiel
+//     //     let mut sequential = Sequential::new();
+//     //
+//     //     // Ajouter des couches
+//     //     sequential.add(Box::new(Linear::new(2, 4, true)));
+//     //     sequential.add(Box::new(ReLU::new()));
+//     //     sequential.add(Box::new(Linear::new(4, 1, true)));
+//     //     sequential.add(Box::new(Sigmoid::new()));
+//     //
+//     //     // Créer un tenseur d'entrée
+//     //     let input_tensor = Tensor::from_data(&[1.0, 2.0], vec![1, 2], None);
+//     //
+//     //     let input = Variable::from_tensor(input_tensor, true);
+//     //
+//     //     // Forward pass
+//     //     let output = sequential.forward(&input);
+//     //
+//     //     // Vérifier la forme de sortie
+//     //     assert_eq!(output.tensor.shape(), &[1, 1]);
+//     //
+//     //     // Vérifier que la sortie est entre 0 et 1 (sigmoid)
+//     //     let value = output.tensor.storage().as_ref().to_vec_f64()[0];
+//     //     assert!(value >= 0.0 && value <= 1.0);
+//     //
+//     //     // Vérifier le nombre de paramètres
+//     //     let params = sequential.parameters();
+//     //     assert_eq!(params.len(), 4); // 2 couches linéaires × (poids + biais)
+//     // }
 //
 //     #[test]
 //     fn test_initialization() {
@@ -305,7 +308,10 @@
 //         }
 //
 //         // Initialisation normale
-//         linear.init_weights(InitMethod::Normal { mean: 0.0, std: 0.01 });
+//         linear.init_weights(InitMethod::Normal {
+//             mean: 0.0,
+//             std: 0.01,
+//         });
 //
 //         // Pour une initialisation stochastique, on vérifie juste que les poids ont changé
 //         // let weight_data_new = linear.weight.tensor.storage().as_ref().to_vec_f64();

@@ -1,12 +1,10 @@
 //rustytorch_utils/src/lib.rs
 
-
-
-pub mod Logging {
+pub mod logging {
     use std::fmt;
     use std::fmt::Display;
 
-    #[derive(Debug,Clone,PartialEq,Eq,PartialOrd,Ord)]
+    #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
     pub enum Loglevel {
         Debug,
         Info,
@@ -16,13 +14,13 @@ pub mod Logging {
     }
 
     impl Display for Loglevel {
-        fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result{
-            match self{
-                Loglevel::Debug => write!(f,"DEBUG"),
-                Loglevel::Info => write!(f,"INFO"),
-                Loglevel::Warning => write!(f,"WARNING"),
-                Loglevel::Error => write!(f,"ERROR"),
-                Loglevel::Critical => write!(f,"CRITICAL"),
+        fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+            match self {
+                Loglevel::Debug => write!(f, "DEBUG"),
+                Loglevel::Info => write!(f, "INFO"),
+                Loglevel::Warning => write!(f, "WARNING"),
+                Loglevel::Error => write!(f, "ERROR"),
+                Loglevel::Critical => write!(f, "CRITICAL"),
             }
         }
     }
@@ -32,80 +30,78 @@ pub mod Logging {
         level: Loglevel,
     }
 
-    impl Logger{
-        pub fn new(level: Loglevel) -> Self{
-            Self{level}
+    impl Logger {
+        pub fn new(level: Loglevel) -> Self {
+            Self { level }
         }
-        pub fn log(&self,level: Loglevel,message: &str){
+        pub fn log(&self, level: Loglevel, message: &str) {
             if level >= self.level {
                 println!("[{}] {}", level, message);
             }
         }
 
-        pub fn debug(&self,message: &str) {
-            self.log(Loglevel::Debug,message);
+        pub fn debug(&self, message: &str) {
+            self.log(Loglevel::Debug, message);
         }
 
-        pub fn info(&self,message: &str) {
-            self.log(Loglevel::Info,message);
+        pub fn info(&self, message: &str) {
+            self.log(Loglevel::Info, message);
         }
 
-        pub fn warning(&self,message: &str) {
-            self.log(Loglevel::Warning,message);
+        pub fn warning(&self, message: &str) {
+            self.log(Loglevel::Warning, message);
         }
-        pub fn error(&self,message: &str) {
-            self.log(Loglevel::Error,message);
+        pub fn error(&self, message: &str) {
+            self.log(Loglevel::Error, message);
         }
 
-        pub fn critical(&self,message: &str) {
-            self.log(Loglevel::Critical,message);
+        pub fn critical(&self, message: &str) {
+            self.log(Loglevel::Critical, message);
         }
     }
 
-    impl Default for Logger{
+    impl Default for Logger {
         fn default() -> Self {
             Self::new(Loglevel::Info)
         }
     }
-
 }
-
 
 pub mod profiling {
     use std::time::{Duration, Instant};
 
     // Simple Time pour messures la durée d'exécution
     pub struct Timer {
-        start:Instant,
+        start: Instant,
         name: String,
     }
 
-    impl Timer{
+    impl Timer {
         pub fn new(name: &str) -> Self {
-            println!("[TIMER] Starting: {}",name);
-            Self{
+            println!("[TIMER] Starting: {}", name);
+            Self {
                 start: Instant::now(),
                 name: name.to_string(),
             }
         }
-        pub fn elapsed(&self) -> Duration{
+        pub fn elapsed(&self) -> Duration {
             self.start.elapsed()
         }
 
-        pub fn reset(&mut self){
+        pub fn reset(&mut self) {
             self.start = Instant::now();
         }
     }
 
-    impl Drop for  Timer{
+    impl Drop for Timer {
         fn drop(&mut self) {
             let duration = self.elapsed();
-            println!("[TIMER] {} took: {:?}",self.name,duration);
+            println!("[TIMER] {} took: {:?}", self.name, duration);
         }
     }
 }
 
-    // Module pouur les fonctions de benchmar
+// Module pouur les fonctions de benchmar
 
 pub mod benchmark {
     use super::profiling::Timer;
@@ -133,27 +129,26 @@ pub mod benchmark {
     }
 
     /// Resultat du benchmark
-    pub struct BenchmarkResult{
-        pub name : String,
-        pub iterations:u32,
-        pub times:Vec<Duration>,
+    pub struct BenchmarkResult {
+        pub name: String,
+        pub iterations: u32,
+        pub times: Vec<Duration>,
     }
 
-    impl BenchmarkResult{
-        pub fn avg(&self) -> Duration{
+    impl BenchmarkResult {
+        pub fn avg(&self) -> Duration {
             let sum: Duration = self.times.iter().sum();
             sum / self.iterations
         }
-        pub fn min(&self) -> Duration{
+        pub fn min(&self) -> Duration {
             *self.times.iter().min().unwrap_or(&Duration::ZERO)
         }
-        pub fn max(&self) -> Duration{
+        pub fn max(&self) -> Duration {
             *self.times.iter().max().unwrap_or(&Duration::ZERO)
         }
 
-
         // Optionnel: Calculer la médiane
-        pub fn median(&self) -> Duration{
+        pub fn median(&self) -> Duration {
             let mut sorted_times = self.times.clone();
             sorted_times.sort();
             let mid = sorted_times.len() / 2;
@@ -164,16 +159,12 @@ pub mod benchmark {
             }
         }
 
-        pub fn print_summary(&self){
-            println!("[BENCHMARK] {}: {} iterations",self.name,self.iterations);
-            println!("[BENCHMARK] Average time: {:?}",self.avg());
-            println!("[BENCHMARK] Min time: {:?}",self.min());
-            println!("[BENCHMARK] Max time: {:?}",self.max());
+        pub fn print_summary(&self) {
+            println!("[BENCHMARK] {}: {} iterations", self.name, self.iterations);
+            println!("[BENCHMARK] Average time: {:?}", self.avg());
+            println!("[BENCHMARK] Min time: {:?}", self.min());
+            println!("[BENCHMARK] Max time: {:?}", self.max());
             // println!("[BENCHMARK] Median time: {:?}",self.median());
         }
-
     }
-
-
-
 }

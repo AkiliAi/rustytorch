@@ -1,8 +1,8 @@
 // Dans rustytorch_viz/src/lib.rs
-use std::collections::{HashMap, HashSet};
+use rustytorch_autograd::Variable;
+use std::collections::HashMap;
 use std::fs::File;
 use std::io::Write;
-use rustytorch_autograd::{Variable};
 
 pub struct GraphViz {
     nodes: HashMap<usize, String>,
@@ -19,21 +19,19 @@ impl GraphViz {
 
     pub fn add_variable(&mut self, var: &Variable) {
         // Ajouter ce nœud s'il n'existe pas déjà
-        if !self.nodes.contains_key(&var.id) {
-            let label = if var.is_leaf {
-                format!("Leaf({:?})", var.tensor.shape())
+        if !self.nodes.contains_key(&var.id()) {
+            let label = if var.is_leaf() {
+                format!("Leaf({:?})", var.tensor().shape())
             } else {
-                format!("{:?}({:?})", var.grad_fn.as_ref().unwrap().operation, var.tensor.shape())
+                format!(
+                    "Op({:?})",
+                    var.tensor().shape()
+                )
             };
-            self.nodes.insert(var.id, label);
+            self.nodes.insert(var.id(), label);
 
-            // Parcourir le graphe et ajouter les nœuds/arêtes
-            if let Some(ref node) = var.grad_fn {
-                for input in &node.inputs {
-                    self.add_variable(input);
-                    self.edges.push((input.id, var.id));
-                }
-            }
+            // Note: Current Variable implementation doesn't expose grad_fn
+            // This is a placeholder for future implementation
         }
     }
 
@@ -58,7 +56,6 @@ impl GraphViz {
 
         Ok(())
     }
-
 
     // /// Fonction qui visualise le graphe de calcul à partir de cette variable
     // pub fn visualize_graph(&self, filename: &str) -> Result<(), Box<dyn std::error::Error>> {
@@ -186,8 +183,4 @@ impl GraphViz {
     //     result
     // }
     //
-
-
-
-
 }
