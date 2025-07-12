@@ -20,6 +20,8 @@ pub fn run_memory_pool_demo() {
         enable_defragmentation: true,
         alignment: 64, // Cache line alignment
         growth_factor: 1.5,
+        bypass_small_allocs: true,        // Enable bypass for performance test
+        bypass_threshold: 4096,           // 4KB threshold
     };
 
     println!(
@@ -215,6 +217,8 @@ pub fn run_memory_pool_demo() {
         enable_defragmentation: true,
         alignment: 256,     // GPU alignment
         growth_factor: 2.0, // Croissance agressive
+        bypass_small_allocs: true,             // Enable bypass for performance
+        bypass_threshold: 1024,                // 1KB threshold
     };
     println!(
         "  - Pool size: {}GB",
@@ -234,6 +238,8 @@ pub fn run_memory_pool_demo() {
         enable_defragmentation: false,    // Latence prévisible
         alignment: 64,                    // CPU optimal
         growth_factor: 1.25,              // Croissance conservative
+        bypass_small_allocs: true,        // Maximum performance
+        bypass_threshold: 2048,           // 2KB threshold
     };
     println!(
         "  - Pool size: {}MB",
