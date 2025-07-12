@@ -52,4 +52,30 @@ pub fn test_pow_operation() {
             println!("❌ Error computing gradient: {}", e);
         }
     }
+    
+    // Test Hessian with pow
+    println!("\n🧪 Testing Hessian with pow...");
+    let x3 = Variable::variable_with_grad(&[2.0], vec![1]);
+    let y3 = x3.pow(3.0); // x³
+    
+    match y3.hessian(&[x3.clone()]) {
+        Ok(hessian) => {
+            if !hessian.is_empty() && !hessian[0].is_empty() {
+                if let Some(second_grad) = &hessian[0][0] {
+                    let second_grad_value = second_grad.tensor().storage().to_vec_f64()[0];
+                    println!("Second-order gradient (Hessian): {:.6}", second_grad_value);
+                    println!("Expected for x³ at x=2: 12.0");
+                    
+                    if (second_grad_value - 12.0).abs() < 1e-3 {
+                        println!("✅ Test Hessian with pow PASSED");
+                    } else {
+                        println!("❌ Test Hessian with pow FAILED - expected 12.0, got {}", second_grad_value);
+                    }
+                }
+            }
+        }
+        Err(e) => {
+            println!("❌ Error computing Hessian: {}", e);
+        }
+    }
 }
