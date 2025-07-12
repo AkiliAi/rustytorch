@@ -14,6 +14,8 @@ mod optimization_demo;
 mod padding_demo;
 mod pow_test;
 mod random_generators_demo;
+mod test_3d_support;
+mod debug_gradient;
 
 use rustytorch_autograd::{enable_grad, Variable};
 use rustytorch_core::{Reduction, Reshapable};
@@ -44,12 +46,19 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("=== DEBUG: Test gradient simple ===");
     debug_simple_gradients();
     
+    // === DEBUG: Detailed gradient test ===
+    println!("\n=== DEBUG: Detailed gradient test ===");
+    debug_gradient::run_debug_gradient();
+    
     // === Exemple rapide de la nouvelle API ===
     println!("=== Exemple Rapide: Nouvelle API Autograd ===");
     quick_autograd_example();
     
     // === DÉMONSTRATIONS DES AUTRES MODULES ===
     println!("\n📊 DÉMONSTRATIONS DES AUTRES MODULES\n");
+
+    // Test du support 3D+ (PRIORITÉ 1)
+    test_3d_support::test_3d_support_demo()?;
 
     // Lancer la démonstration des nouvelles réductions
     println!("{}", "=".repeat(60));
@@ -246,5 +255,9 @@ fn debug_simple_gradients() {
     pow_test::test_pow_operation();
     
     println!();
+}
+
+fn test_3d_support() -> Result<(), Box<dyn std::error::Error>> {
+    test_3d_support::test_3d_support_demo()
 }
 
