@@ -40,7 +40,7 @@ pub struct GraphManager {
     /// Map des nœuds actifs avec weak references
     nodes: Arc<RwLock<HashMap<usize, Weak<OptimizedNode>>>>,
     /// Map des variables actives
-    variables: Arc<RwLock<HashMap<usize, Arc<RwLock<VariableData>>>>>,
+    pub variables: Arc<RwLock<HashMap<usize, Arc<RwLock<VariableData>>>>>,
     /// File d'attente pour le garbage collection
     gc_queue: Arc<Mutex<VecDeque<usize>>>,
     /// Configuration du garbage collector
